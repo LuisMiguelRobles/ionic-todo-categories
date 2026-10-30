@@ -1,0 +1,15 @@
+ion-checkbox {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  transition: color 0.15s ease;
+}
+
+.completed {
+  color: var(--ion-color-medium);
+  text-decoration: line-through;
+}

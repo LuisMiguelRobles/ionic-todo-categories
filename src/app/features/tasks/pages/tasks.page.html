@@ -1,0 +1,57 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Mis tareas</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Mis tareas</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  @if (!store.loaded()) {
+  <ion-list aria-busy="true">
+    @for (row of skeletonRows; track row) {
+    <ion-item>
+      <ion-skeleton-text [animated]="true" class="skeleton"></ion-skeleton-text>
+    </ion-item>
+    }
+  </ion-list>
+  } @else if (store.tasks().length === 0) {
+  <div class="empty-state">
+    <ion-icon name="checkmark-done-circle-outline" aria-hidden="true"></ion-icon>
+    <h2>No tienes tareas</h2>
+    <p>Escribe abajo tu primera tarea para empezar.</p>
+  </div>
+  } @else {
+  <ion-note class="summary" data-testid="summary">
+    {{ store.pendingCount() }} pendientes · {{ store.completedCount() }} completadas
+  </ion-note>
+  <ion-list lines="full">
+    @for (task of store.tasks(); track task.id) {
+    <app-task-item [task]="task" (toggleCompleted)="store.toggle(task.id)" (deleteTask)="deleteTask(task)" />
+    }
+  </ion-list>
+  }
+</ion-content>
+
+<ion-footer id="add-task-footer">
+  <ion-toolbar>
+    <form class="add-task" (submit)="$event.preventDefault(); addTask()">
+      <ion-input
+        aria-label="Nueva tarea"
+        placeholder="Nueva tarea…"
+        enterkeyhint="done"
+        [maxlength]="140"
+        [value]="newTitle()"
+        (ionInput)="onTitleInput($event.detail.value)"
+        (keyup.enter)="addTask()"
+      ></ion-input>
+      <ion-button type="submit" shape="round" aria-label="Agregar tarea" [disabled]="!newTitle().trim()">
+        <ion-icon slot="icon-only" name="add" aria-hidden="true"></ion-icon>
+      </ion-button>
+    </form>
+  </ion-toolbar>
+</ion-footer>
