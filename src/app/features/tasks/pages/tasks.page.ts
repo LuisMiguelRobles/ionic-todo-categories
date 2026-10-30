@@ -1,25 +1,43 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import {
   IonButton,
+  IonButtons,
   IonContent,
   IonFooter,
   IonHeader,
   IonIcon,
   IonInput,
+  IonItem,
   IonList,
   IonNote,
   IonSkeletonText,
-  IonItem,
   IonTitle,
   IonToolbar,
   ToastController,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { add, checkmarkDoneCircleOutline } from 'ionicons/icons';
+import { add, checkmarkDoneCircleOutline, filterOutline, pricetagOutline, pricetagsOutline } from 'ionicons/icons';
 
+import type { Category } from '../../../core/models/category.model';
 import type { Task } from '../../../core/models/task.model';
+import { CategoryPickerService } from '../../categories/category-picker.service';
+import { CategoriesStore } from '../../categories/data/categories.store';
 import { TaskItemComponent } from '../components/task-item/task-item.component';
-import { TasksStore } from '../data/tasks.store';
+import type { CategoryFilter, RemovedTask } from '../data/tasks.store';
+import { ALL_TASKS, TasksStore, UNCATEGORIZED } from '../data/tasks.store';
+
+interface FilterOption {
+  key: string;
+  label: string;
+  count: number;
+  color: string | null;
+  filter: CategoryFilter;
+}
+
+function filterKey(filter: CategoryFilter): string {
+  return filter.kind === 'category' ? filter.id : filter.kind;
+}
 
 @Component({
   selector: 'app-tasks',
@@ -27,8 +45,10 @@ import { TasksStore } from '../data/tasks.store';
   styleUrls: ['tasks.page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    RouterLink,
     IonHeader,
     IonToolbar,
+    IonButtons,
     IonTitle,
     IonContent,
     IonList,
@@ -44,14 +64,68 @@ import { TasksStore } from '../data/tasks.store';
 })
 export class TasksPage {
   protected readonly store = inject(TasksStore);
+  protected readonly categoriesStore = inject(CategoriesStore);
+  private readonly categoryPicker = inject(CategoryPickerService);
   private readonly toastController = inject(ToastController);
 
   protected readonly newTitle = signal('');
   protected readonly skeletonRows = [1, 2, 3, 4, 5];
 
+  protected readonly hasCategories = computed(() => this.categoriesStore.categories().length > 0);
+  protected readonly activeFilterKey = computed(() => filterKey(this.store.filter()));
+
+  /** Chips de filtro con su contador; vacío si no hay categorías. */
+  protected readonly filterOptions = computed<FilterOption[]>(() => {
+    const categories = this.categoriesStore.categories();
+    if (categories.length === 0) {
+      return [];
+    }
+    const counts = this.store.countByCategory();
+    return [
+      { key: 'all', label: 'Todas', count: this.store.tasks().length, color: null, filter: ALL_TASKS },
+      ...categories.map((category) => ({
+        key: category.id,
+        label: category.name,
+        count: counts.get(category.id) ?? 0,
+        color: category.color,
+        filter: { kind: 'category', id: category.id } as const,
+      })),
+      {
+        key: 'uncategorized',
+        label: 'Sin categoría',
+        count: counts.get(null) ?? 0,
+        color: null,
+        filter: UNCATEGORIZED,
+      },
+    ];
+  });
+
+  /** Categoría para la próxima tarea: por defecto, la del filtro activo. */
+  protected readonly newTaskCategoryId = linkedSignal(() => {
+    const filter = this.store.filter();
+    return filter.kind === 'category' ? filter.id : null;
+  });
+  protected readonly newTaskCategory = computed(() => {
+    const id = this.newTaskCategoryId();
+    return id ? (this.categoriesStore.byId().get(id) ?? null) : null;
+  });
+  protected readonly newTaskPlaceholder = computed(() => {
+    const category = this.newTaskCategory();
+    return category ? `Nueva tarea en ${category.name}…` : 'Nueva tarea…';
+  });
+
   constructor() {
-    addIcons({ add, checkmarkDoneCircleOutline });
+    addIcons({ add, checkmarkDoneCircleOutline, filterOutline, pricetagOutline, pricetagsOutline });
     void this.store.load();
+    void this.categoriesStore.load();
+  }
+
+  protected showAll(): void {
+    this.store.setFilter(ALL_TASKS);
+  }
+
+  protected categoryOf(task: Task): Category | null {
+    return task.categoryId ? (this.categoriesStore.byId().get(task.categoryId) ?? null) : null;
   }
 
   protected onTitleInput(value: string | null | undefined): void {
@@ -59,8 +133,22 @@ export class TasksPage {
   }
 
   protected addTask(): void {
-    if (this.store.add(this.newTitle())) {
+    if (this.store.add(this.newTitle(), this.newTaskCategory()?.id ?? null)) {
       this.newTitle.set('');
+    }
+  }
+
+  protected async pickNewTaskCategory(): Promise<void> {
+    const picked = await this.categoryPicker.pick(this.newTaskCategory()?.id ?? null, 'Categoría de la nueva tarea');
+    if (picked !== undefined) {
+      this.newTaskCategoryId.set(picked);
+    }
+  }
+
+  protected async changeCategory(task: Task): Promise<void> {
+    const picked = await this.categoryPicker.pick(task.categoryId);
+    if (picked !== undefined) {
+      this.store.setCategory(task.id, picked);
     }
   }
 
@@ -74,8 +162,17 @@ export class TasksPage {
       duration: 5000,
       position: 'bottom',
       positionAnchor: 'add-task-footer',
-      buttons: [{ text: 'Deshacer', handler: () => this.store.restore(removed) }],
+      buttons: [{ text: 'Deshacer', handler: () => this.undoDelete(removed) }],
     });
     await toast.present();
+  }
+
+  private undoDelete(removed: RemovedTask): void {
+    this.store.restore(removed);
+    // La categoría pudo eliminarse mientras el toast estaba visible.
+    const { id, categoryId } = removed.task;
+    if (categoryId && !this.categoriesStore.byId().has(categoryId)) {
+      this.store.setCategory(id, null);
+    }
   }
 }

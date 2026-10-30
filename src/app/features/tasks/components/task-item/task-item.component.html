@@ -8,6 +8,27 @@
     >
       <span class="title" [class.completed]="task().completed">{{ task().title }}</span>
     </ion-checkbox>
+
+    @if (showCategory()) {
+      @let current = category();
+      <button
+        type="button"
+        slot="end"
+        class="category-chip"
+        [class.empty]="!current"
+        [style.--chip-color]="current?.color"
+        [attr.aria-label]="current ? 'Categoría ' + current.name + '. Cambiar categoría' : 'Asignar categoría'"
+        (click)="changeCategory.emit()"
+      >
+        @if (current) {
+          <span class="dot" aria-hidden="true"></span>
+          <span class="name">{{ current.name }}</span>
+        } @else {
+          <ion-icon name="pricetag-outline" aria-hidden="true"></ion-icon>
+        }
+      </button>
+    }
+
     <ion-button slot="end" fill="clear" color="medium" aria-label="Eliminar tarea" (click)="deleteTask.emit()">
       <ion-icon slot="icon-only" name="trash-outline" aria-hidden="true"></ion-icon>
     </ion-button>

@@ -1,0 +1,40 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tasks" text="Tareas"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Categorías</ion-title>
+    <ion-buttons slot="end">
+      <ion-button aria-label="Nueva categoría" (click)="create()">
+        <ion-icon slot="icon-only" name="add" aria-hidden="true"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  @if (store.loaded() && store.categories().length === 0) {
+  <div class="empty-state">
+    <ion-icon name="pricetags-outline" aria-hidden="true"></ion-icon>
+    <h2>Sin categorías</h2>
+    <p>Crea categorías para organizar y filtrar tus tareas.</p>
+    <ion-button (click)="create()">Crear categoría</ion-button>
+  </div>
+  } @else {
+  <ion-list lines="full">
+    @for (category of store.categories(); track category.id) {
+    <ion-item-sliding>
+      <ion-item [button]="true" [detail]="true" (click)="edit(category)">
+        <span slot="start" class="dot" [style.background]="category.color" aria-hidden="true"></span>
+        <ion-label>{{ category.name }}</ion-label>
+        <ion-note slot="end"> {{ taskCount(category) }} {{ taskCount(category) === 1 ? 'tarea' : 'tareas' }} </ion-note>
+      </ion-item>
+      <ion-item-options side="end">
+        <ion-item-option color="danger" (click)="confirmRemove(category)">Eliminar</ion-item-option>
+      </ion-item-options>
+    </ion-item-sliding>
+    }
+  </ion-list>
+  <p class="hint">Toca una categoría para editarla o eliminarla.</p>
+  }
+</ion-content>

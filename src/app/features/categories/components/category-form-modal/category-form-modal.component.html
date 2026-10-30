@@ -1,0 +1,59 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button aria-label="Cancelar" (click)="cancel()">
+        <ion-icon slot="icon-only" name="close" aria-hidden="true"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>{{ category() ? 'Editar categoría' : 'Nueva categoría' }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button [strong]="true" (click)="save()">Guardar</ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <form (submit)="$event.preventDefault(); save()">
+    <ion-input
+      label="Nombre"
+      labelPlacement="stacked"
+      fill="outline"
+      placeholder="Ej. Hogar"
+      enterkeyhint="done"
+      [counter]="true"
+      [maxlength]="maxLength"
+      [value]="name()"
+      [errorText]="errorMessage()"
+      [class.ion-invalid]="!!errorMessage()"
+      [class.ion-touched]="!!errorMessage()"
+      (ionInput)="onNameInput($event.detail.value)"
+      (ionBlur)="touched.set(true)"
+    ></ion-input>
+  </form>
+
+  <p class="section-label" id="color-label">Color</p>
+  <div class="swatches" role="radiogroup" aria-labelledby="color-label">
+    @for (option of colors; track option.value) {
+      <button
+        type="button"
+        role="radio"
+        class="swatch"
+        [style.background]="option.value"
+        [attr.aria-checked]="option.value === color()"
+        [attr.aria-label]="option.label"
+        (click)="color.set(option.value)"
+      >
+        @if (option.value === color()) {
+          <ion-icon name="checkmark" aria-hidden="true"></ion-icon>
+        }
+      </button>
+    }
+  </div>
+
+  @if (category()) {
+    <ion-button class="delete" expand="block" fill="clear" color="danger" (click)="delete()">
+      <ion-icon slot="start" name="trash-outline" aria-hidden="true"></ion-icon>
+      Eliminar categoría
+    </ion-button>
+  }
+</ion-content>

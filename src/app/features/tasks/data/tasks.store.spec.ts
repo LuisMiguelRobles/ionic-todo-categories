@@ -1,21 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 
+import { FakeStorageService } from '../../../../testing/fake-storage.service';
 import type { Task } from '../../../core/models/task.model';
 import { StorageService } from '../../../core/storage/storage.service';
 
-import { TASKS_STORAGE_KEY, TasksStore } from './tasks.store';
-
-class FakeStorageService {
-  readonly data = new Map<string, unknown>();
-
-  async get<T>(key: string): Promise<T | null> {
-    return (this.data.get(key) as T | undefined) ?? null;
-  }
-
-  set<T>(key: string, value: T): void {
-    this.data.set(key, value);
-  }
-}
+import { TASKS_STORAGE_KEY, TasksStore, UNCATEGORIZED } from './tasks.store';
 
 describe('TasksStore', () => {
   let store: TasksStore;
@@ -36,7 +25,7 @@ describe('TasksStore', () => {
   });
 
   it('loads previously persisted tasks', async () => {
-    const saved: Task[] = [{ id: 'a', title: 'Guardada', completed: true, createdAt: 1 }];
+    const saved: Task[] = [{ id: 'a', title: 'Guardada', completed: true, categoryId: 'work', createdAt: 1 }];
     storage.data.set(TASKS_STORAGE_KEY, saved);
     const fresh = TestBed.runInInjectionContext(() => new TasksStore());
 
@@ -92,5 +81,64 @@ describe('TasksStore', () => {
     store.restore(removed);
     store.restore(removed);
     expect(store.tasks()).toHaveLength(1);
+  });
+
+  it('migrates tasks saved before categories existed', async () => {
+    storage.data.set(TASKS_STORAGE_KEY, [{ id: 'old', title: 'Antigua', completed: false, createdAt: 1 }]);
+    const fresh = TestBed.runInInjectionContext(() => new TasksStore());
+
+    await fresh.load();
+
+    expect(fresh.tasks()[0].categoryId).toBeNull();
+  });
+
+  describe('categories and filters', () => {
+    beforeEach(() => {
+      store.add('Informe', 'work');
+      store.add('Gimnasio', 'home');
+      store.add('Leer');
+      store.add('Reunión', 'work');
+    });
+
+    it('counts tasks per category in one map, using null for uncategorized', () => {
+      const counts = store.countByCategory();
+      expect(counts.get('work')).toBe(2);
+      expect(counts.get('home')).toBe(1);
+      expect(counts.get(null)).toBe(1);
+    });
+
+    it('filters by category and by uncategorized', () => {
+      store.setFilter({ kind: 'category', id: 'work' });
+      expect(store.visibleTasks().map((task) => task.title)).toEqual(['Reunión', 'Informe']);
+
+      store.setFilter(UNCATEGORIZED);
+      expect(store.visibleTasks().map((task) => task.title)).toEqual(['Leer']);
+    });
+
+    it('scopes the pending/completed summary to the active filter', () => {
+      const report = store.tasks().find((task) => task.title === 'Informe')!;
+      store.toggle(report.id);
+      store.setFilter({ kind: 'category', id: 'work' });
+
+      expect(store.pendingCount()).toBe(1);
+      expect(store.completedCount()).toBe(1);
+    });
+
+    it('changes the category of a task', () => {
+      const reading = store.tasks().find((task) => task.title === 'Leer')!;
+      store.setCategory(reading.id, 'home');
+      expect(store.countByCategory().get('home')).toBe(2);
+      expect(store.countByCategory().get(null)).toBeUndefined();
+    });
+
+    it('unassigns a deleted category and resets a filter pointing to it', () => {
+      store.setFilter({ kind: 'category', id: 'work' });
+
+      store.unassignCategory('work');
+
+      expect(store.filter()).toEqual({ kind: 'all' });
+      expect(store.countByCategory().get('work')).toBeUndefined();
+      expect(store.countByCategory().get(null)).toBe(3);
+    });
   });
 });

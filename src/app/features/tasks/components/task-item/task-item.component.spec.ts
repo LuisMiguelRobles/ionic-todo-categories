@@ -5,7 +5,7 @@ import type { Task } from '../../../../core/models/task.model';
 import { TaskItemComponent } from './task-item.component';
 
 describe('TaskItemComponent', () => {
-  const task: Task = { id: '1', title: 'Leer documentación', completed: true, createdAt: 0 };
+  const task: Task = { id: '1', title: 'Leer documentación', completed: true, categoryId: null, createdAt: 0 };
 
   function render() {
     const fixture = TestBed.createComponent(TaskItemComponent);
@@ -28,5 +28,29 @@ describe('TaskItemComponent', () => {
     fixture.nativeElement.querySelector('ion-button[aria-label="Eliminar tarea"]').click();
 
     expect(emitted).toBe(1);
+  });
+
+  it('shows the category chip and emits changeCategory', () => {
+    const fixture = TestBed.createComponent(TaskItemComponent);
+    fixture.componentRef.setInput('task', task);
+    fixture.componentRef.setInput('category', { id: 'w', name: 'Trabajo', color: '#8b5cf6', createdAt: 0 });
+    fixture.detectChanges();
+    let emitted = 0;
+    fixture.componentInstance.changeCategory.subscribe(() => emitted++);
+
+    const chip: HTMLButtonElement = fixture.nativeElement.querySelector('.category-chip');
+    expect(chip.textContent).toContain('Trabajo');
+    chip.click();
+
+    expect(emitted).toBe(1);
+  });
+
+  it('hides the category chip when categories are disabled', () => {
+    const fixture = TestBed.createComponent(TaskItemComponent);
+    fixture.componentRef.setInput('task', task);
+    fixture.componentRef.setInput('showCategory', false);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.category-chip')).toBeNull();
   });
 });

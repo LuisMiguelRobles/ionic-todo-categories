@@ -6,6 +6,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/tasks/pages/tasks.page').then((m) => m.TasksPage),
   },
   {
+    path: 'categories',
+    loadComponent: () => import('./features/categories/pages/categories.page').then((m) => m.CategoriesPage),
+  },
+  {
     path: '',
     redirectTo: 'tasks',
     pathMatch: 'full',

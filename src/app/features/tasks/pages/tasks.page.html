@@ -1,16 +1,37 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-title>Mis tareas</ion-title>
+    <ion-buttons slot="end">
+      <ion-button routerLink="/categories" aria-label="Gestionar categorías">
+        <ion-icon slot="icon-only" name="pricetags-outline" aria-hidden="true"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
+
+  @if (filterOptions().length > 0) {
+  <ion-toolbar class="filters-toolbar">
+    <div class="filters" role="group" aria-label="Filtrar por categoría">
+      @for (option of filterOptions(); track option.key) {
+      <button
+        type="button"
+        class="filter-chip"
+        [class.selected]="option.key === activeFilterKey()"
+        [attr.aria-pressed]="option.key === activeFilterKey()"
+        [style.--chip-color]="option.color"
+        (click)="store.setFilter(option.filter)"
+      >
+        @if (option.color) {
+        <span class="dot" aria-hidden="true"></span>
+        } {{ option.label }}
+        <span class="count">{{ option.count }}</span>
+      </button>
+      }
+    </div>
+  </ion-toolbar>
+  }
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Mis tareas</ion-title>
-    </ion-toolbar>
-  </ion-header>
-
   @if (!store.loaded()) {
   <ion-list aria-busy="true">
     @for (row of skeletonRows; track row) {
@@ -25,13 +46,27 @@
     <h2>No tienes tareas</h2>
     <p>Escribe abajo tu primera tarea para empezar.</p>
   </div>
+  } @else if (store.visibleTasks().length === 0) {
+  <div class="empty-state">
+    <ion-icon name="filter-outline" aria-hidden="true"></ion-icon>
+    <h2>Nada por aquí</h2>
+    <p>No hay tareas con este filtro.</p>
+    <ion-button fill="clear" (click)="showAll()">Ver todas</ion-button>
+  </div>
   } @else {
   <ion-note class="summary" data-testid="summary">
     {{ store.pendingCount() }} pendientes · {{ store.completedCount() }} completadas
   </ion-note>
   <ion-list lines="full">
-    @for (task of store.tasks(); track task.id) {
-    <app-task-item [task]="task" (toggleCompleted)="store.toggle(task.id)" (deleteTask)="deleteTask(task)" />
+    @for (task of store.visibleTasks(); track task.id) {
+    <app-task-item
+      [task]="task"
+      [category]="categoryOf(task)"
+      [showCategory]="hasCategories()"
+      (toggleCompleted)="store.toggle(task.id)"
+      (changeCategory)="changeCategory(task)"
+      (deleteTask)="deleteTask(task)"
+    />
     }
   </ion-list>
   }
@@ -40,9 +75,20 @@
 <ion-footer id="add-task-footer">
   <ion-toolbar>
     <form class="add-task" (submit)="$event.preventDefault(); addTask()">
+      @if (hasCategories()) { @let category = newTaskCategory();
+      <button
+        type="button"
+        class="new-task-category"
+        [style.--chip-color]="category?.color"
+        [attr.aria-label]="'Categoría de la nueva tarea: ' + (category?.name ?? 'sin categoría')"
+        (click)="pickNewTaskCategory()"
+      >
+        <ion-icon name="pricetag-outline" aria-hidden="true"></ion-icon>
+      </button>
+      }
       <ion-input
         aria-label="Nueva tarea"
-        placeholder="Nueva tarea…"
+        [placeholder]="newTaskPlaceholder()"
         enterkeyhint="done"
         [maxlength]="140"
         [value]="newTitle()"

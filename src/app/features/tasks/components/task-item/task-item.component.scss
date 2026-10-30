@@ -13,3 +13,40 @@ ion-checkbox {
   color: var(--ion-color-medium);
   text-decoration: line-through;
 }
+
+.category-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 110px;
+  min-height: 28px;
+  margin: 0 0 0 8px;
+  padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--chip-color) 45%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--chip-color) 15%, transparent);
+  color: var(--ion-text-color);
+  font-size: 0.75rem;
+  cursor: pointer;
+
+  &.empty {
+    border-color: var(--ion-color-step-250, #c8c8c8);
+    background: transparent;
+    color: var(--ion-color-medium);
+    font-size: 1rem;
+  }
+
+  .dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--chip-color);
+  }
+
+  .name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
