@@ -1,2 +1,24 @@
 // For information on how to create your own theme, please refer to:
 // https://ionicframework.com/docs/theming/
+
+// Color primario alineado con el ícono de la app (índigo).
+:root {
+  --ion-color-primary: #4f46e5;
+  --ion-color-primary-rgb: 79, 70, 229;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #463ec9;
+  --ion-color-primary-tint: #6159e8;
+}
+
+// En modo oscuro se aclara para mantener el contraste sobre fondos oscuros.
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ion-color-primary: #818cf8;
+    --ion-color-primary-rgb: 129, 140, 248;
+    --ion-color-primary-contrast: #000000;
+    --ion-color-primary-contrast-rgb: 0, 0, 0;
+    --ion-color-primary-shade: #727bda;
+    --ion-color-primary-tint: #8e98f9;
+  }
+}

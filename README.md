@@ -2,7 +2,7 @@
 
 Aplicación híbrida de lista de tareas construida con **Ionic 9 + Angular 22** y empaquetada con **Cordova** para Android e iOS.
 
-> Estado: **fase 2 — categorías**. Firebase Remote Config, las optimizaciones y los binarios llegan en las siguientes fases (ver [Roadmap](#roadmap)).
+> Estado: **fase 3 — compilación nativa**. Firebase Remote Config, las optimizaciones y los binarios llegan en las siguientes fases (ver [Roadmap](#roadmap)).
 
 ## Funcionalidades
 
@@ -31,11 +31,8 @@ Aplicación híbrida de lista de tareas construida con **Ionic 9 + Angular 22** 
 ## Requisitos
 
 - **Node 24 LTS** (hay un `.nvmrc`: ejecuta `nvm use`). Angular 22 no soporta Node 23.
-- CLIs globales:
-
-```bash
-npm i -g @ionic/cli cordova
-```
+- Ionic CLI y Cordova vienen como dependencias de desarrollo, así que **no hace falta instalarlos globalmente**: los scripts de `npm` usan las versiones del proyecto.
+- Para compilar las apps nativas, ver [Android e iOS](#android-e-ios).
 
 ## Ejecutar en el navegador
 
@@ -56,21 +53,84 @@ Abre <http://localhost:4200>. Para verlo como teléfono, usa el modo dispositivo
 | `npm run test:unit` | Pruebas unitarias (Vitest) |
 | `npm run test:e2e` | Pruebas end-to-end (Playwright; requiere `npx playwright install chromium`) |
 | `npm run lint` | ESLint + typecheck de e2e + Prettier |
+| `npm run android:*` / `npm run ios:*` | Compilar y ejecutar en nativo (ver [Android e iOS](#android-e-ios)) |
 
-## Compilar con Cordova
+## Android e iOS
 
-> Las instrucciones completas para dispositivos y emuladores se agregan en la fase 3.
+La app se empaqueta con **Cordova 13** (cordova-android 15, cordova-ios 8). Las plataformas (`platforms/`) no se versionan: `package.json` las declara y Cordova las regenera.
+
+### Preparar el entorno
+
+**Android**
+
+1. Instala [Android Studio](https://developer.android.com/studio). En *SDK Manager* instala **Android SDK Platform 36**, **Build-Tools 36** y **Command-line Tools**. En *Device Manager*, crea un emulador.
+2. Instala **JDK 17** y **Gradle**. El JDK que trae Android Studio puede ser más nuevo (p. ej. 25) y Gradle 8.14, que usa Cordova, no lo soporta.
+
+   ```bash
+   brew install openjdk@17 gradle
+   ```
+
+3. Agrega a tu `~/.zshrc`:
+
+   ```bash
+   export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
+   export ANDROID_HOME=$HOME/Library/Android/sdk
+   export PATH=$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH
+   ```
+
+**iOS** (solo macOS)
+
+1. Instala **Xcode** desde la App Store y ábrelo una vez para que instale sus componentes y el simulador de iOS.
+2. Selecciona Xcode como herramienta activa y acepta la licencia:
+
+   ```bash
+   sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+   sudo xcodebuild -license accept
+   ```
+
+Comprueba el entorno con `npm run cordova:requirements`.
+
+### Ejecutar en un emulador o dispositivo
 
 ```bash
-npx cordova platform add android
-npx cordova platform add ios
-ionic cordova build android
-ionic cordova build ios
+npm install
+npx cordova prepare          # descarga las plataformas declaradas en package.json
 ```
 
-Los targets `ionic-cordova-build` e `ionic-cordova-serve` de `angular.json` inyectan `cordova.js` en el build.
-iOS usa el esquema `app://localhost` (ver `config.xml`), porque `file://` bloquea los módulos ES que genera Angular.
-**Versión mínima de iOS: 17** (el WebView usa el motor de Safari del sistema).
+| Objetivo | Comando |
+|---|---|
+| Emulador de Android | `npm run android:run -- --emulator` |
+| Dispositivo Android (con depuración USB activada) | `npm run android:run -- --device` |
+| Simulador de iOS | `npm run ios:run -- --emulator --target "iPhone-17"` |
+| Ver simuladores/emuladores disponibles | `npx cordova run ios --list` / `npx cordova run android --list` |
+| iPhone físico | `npm run ios:build`, abre `platforms/ios/App.xcworkspace` en Xcode, elige tu *Team* en *Signing & Capabilities* y pulsa ▶ |
+
+Con un Apple ID gratuito, Xcode puede instalar la app en tu propio iPhone; la firma dura 7 días. Para distribuirla hace falta una cuenta de Apple Developer de pago.
+
+### Compilar
+
+| Comando | Resultado |
+|---|---|
+| `npm run android:build` | APK de debug en `platforms/android/app/build/outputs/apk/debug/app-debug.apk` |
+| `npm run android:release` | APK de release; la firma se configura en la fase 7 |
+| `npm run ios:build -- --emulator` | `platforms/ios/build/Debug-iphonesimulator/Tareas.app` |
+
+### Detalles de la integración
+
+- **Builder de Angular:** los targets `ionic-cordova-build` e `ionic-cordova-serve` de `angular.json` usan `@ionic/cordova-builders` para inyectar `cordova.js` en el build.
+- **iOS usa el esquema `app://localhost`**, porque `file://` bloquea los módulos ES que genera Angular. Android sirve los archivos desde `https://localhost` (WebViewAssetLoader).
+- **Versión mínima: iOS 17** (`deployment-target` en `config.xml`), porque el WebView usa el motor de Safari del sistema y Angular 22 requiere Safari 17. En Android, el WebView se actualiza desde Play Store.
+- **Íconos y splash:** `resources/icon.svg` es la fuente del ícono. Android usa ícono adaptativo (primer plano y fondo) y el splash nativo de Android 12+. En iOS, todos los tamaños se generan sin canal alfa, como exige la App Store.
+- **Splash sin espera fija:** `AutoHideSplashScreen=false` y la app lo oculta al pintar la primera pantalla (`core/platform/splash-screen.ts`). Así se evitan los 3 s de espera por defecto de Cordova.
+
+### Problemas comunes
+
+| Síntoma | Solución |
+|---|---|
+| `Could not find an installed version of Gradle` | `brew install gradle` |
+| `Unsupported class file major version` / Gradle no arranca | `JAVA_HOME` apunta a un JDK distinto de 17 |
+| `xcodebuild requires Xcode, but active developer directory ... is a command line tools instance` | `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer` |
+| Pantalla en blanco en iOS | Comprueba que `config.xml` mantenga `scheme=app` y `hostname=localhost` |
 
 ## Estructura
 
@@ -78,6 +138,7 @@ iOS usa el esquema `app://localhost` (ver `config.xml`), porque `file://` bloque
 src/app/
 ├── core/                     # Infraestructura compartida
 │   ├── models/               # Interfaces de dominio (Task, Category)
+│   ├── platform/             # Integración nativa (ocultar el splash)
 │   ├── storage/              # StorageService (IndexedDB + debounce + flush al pasar a segundo plano)
 │   └── utils/                # Utilidades puras (ids)
 └── features/
@@ -109,7 +170,7 @@ src/testing/                  # Dobles de prueba compartidos (FakeStorageService
 - [x] **Fase 0:** entorno (Node 24, Ionic CLI, Cordova CLI)
 - [x] **Fase 1:** app base (CRUD de tareas, persistencia, Cordova configurado)
 - [x] **Fase 2:** categorías (CRUD, asignación, filtro)
-- [ ] **Fase 3:** compilación nativa Android/iOS documentada
+- [x] **Fase 3:** compilación nativa Android/iOS documentada
 - [ ] **Fase 4:** Firebase Remote Config con feature flag
 - [ ] **Fase 5:** optimización de rendimiento con métricas antes y después
 - [ ] **Fase 6:** CI/CD con GitHub Actions

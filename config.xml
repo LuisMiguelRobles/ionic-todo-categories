@@ -10,21 +10,24 @@
     <preference name="ScrollEnabled" value="false" />
     <preference name="BackupWebStorage" value="none" />
     <preference name="DisallowOverscroll" value="true" />
+    <preference name="AutoHideSplashScreen" value="false" />
+    <preference name="FadeSplashScreenDuration" value="200" />
     <platform name="android">
-        <!-- cordova-android 10+ sirve los archivos desde https://localhost (WebViewAssetLoader) -->
         <preference name="AndroidInsecureFileModeEnabled" value="false" />
+        <preference name="AndroidWindowSplashScreenAnimatedIcon" value="resources/android/splash/splash-icon.png" />
+        <preference name="AndroidWindowSplashScreenBackground" value="#4f46e5" />
         <allow-intent href="market:*" />
-        <icon density="ldpi" src="resources/android/icon/drawable-ldpi-icon.png" />
-        <icon density="mdpi" src="resources/android/icon/drawable-mdpi-icon.png" />
-        <icon density="hdpi" src="resources/android/icon/drawable-hdpi-icon.png" />
-        <icon density="xhdpi" src="resources/android/icon/drawable-xhdpi-icon.png" />
-        <icon density="xxhdpi" src="resources/android/icon/drawable-xxhdpi-icon.png" />
-        <icon density="xxxhdpi" src="resources/android/icon/drawable-xxxhdpi-icon.png" />
+        <icon background="resources/android/icon/ldpi-background.png" density="ldpi" foreground="resources/android/icon/ldpi-foreground.png" src="resources/android/icon/ldpi-icon.png" />
+        <icon background="resources/android/icon/mdpi-background.png" density="mdpi" foreground="resources/android/icon/mdpi-foreground.png" src="resources/android/icon/mdpi-icon.png" />
+        <icon background="resources/android/icon/hdpi-background.png" density="hdpi" foreground="resources/android/icon/hdpi-foreground.png" src="resources/android/icon/hdpi-icon.png" />
+        <icon background="resources/android/icon/xhdpi-background.png" density="xhdpi" foreground="resources/android/icon/xhdpi-foreground.png" src="resources/android/icon/xhdpi-icon.png" />
+        <icon background="resources/android/icon/xxhdpi-background.png" density="xxhdpi" foreground="resources/android/icon/xxhdpi-foreground.png" src="resources/android/icon/xxhdpi-icon.png" />
+        <icon background="resources/android/icon/xxxhdpi-background.png" density="xxxhdpi" foreground="resources/android/icon/xxxhdpi-foreground.png" src="resources/android/icon/xxxhdpi-icon.png" />
     </platform>
     <platform name="ios">
-        <!-- Esquema propio para que los módulos ES funcionen (file:// los bloquea) -->
         <preference name="scheme" value="app" />
         <preference name="hostname" value="localhost" />
+        <preference name="deployment-target" value="17.0" />
         <allow-intent href="itms:*" />
         <allow-intent href="itms-apps:*" />
         <icon height="57" src="resources/ios/icon/icon.png" width="57" />
@@ -57,5 +60,6 @@
         <icon height="172" src="resources/ios/icon/icon-86@2x.png" width="172" />
         <icon height="196" src="resources/ios/icon/icon-98@2x.png" width="196" />
         <icon height="1024" src="resources/ios/icon/icon-1024.png" width="1024" />
+        <splash src="resources/ios/splash/Default@2x~universal~anyany.png" />
     </platform>
 </widget>
