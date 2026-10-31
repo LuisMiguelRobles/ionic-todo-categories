@@ -16,10 +16,10 @@
     "test:unit": "ng test --no-watch",
     "test:unit:watch": "ng test --watch",
     "test:e2e": "playwright test",
-    "android:run": "ionic cordova run android",
+    "android:run": "ionic cordova run android --no-native-run",
     "android:build": "ionic cordova build android",
     "android:release": "ionic cordova build android --prod --release --confirm --no-interactive -- --buildConfig=build.json",
-    "ios:run": "ionic cordova run ios --prod",
+    "ios:run": "ionic cordova run ios --prod --no-native-run",
     "ios:build": "ionic cordova build ios --prod",
     "ios:ipa": "scripts/release/build-unsigned-ipa.sh",
     "cordova:requirements": "cordova requirements"

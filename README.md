@@ -147,6 +147,8 @@ npx cordova prepare          # descarga las plataformas declaradas en package.js
 | Ver simuladores/emuladores disponibles            | `npx cordova run ios --list` / `npx cordova run android --list`                                                           |
 | iPhone físico                                     | `npm run ios:build`, abre `platforms/ios/App.xcworkspace` en Xcode, elige tu _Team_ en _Signing & Capabilities_ y pulsa ▶ |
 
+Si no hay un emulador de Android encendido, `android:run -- --emulator` arranca el primero que encuentre. Los scripts usan `--no-native-run` para que Cordova instale y abra la app: native-run, la herramienta por defecto de Ionic, no arranca emuladores y busca la app de iOS en una carpeta que cordova-ios 8 ya no usa.
+
 Con un Apple ID gratuito, Xcode puede instalar la app en tu propio iPhone; la firma dura 7 días. Para distribuirla hace falta una cuenta de Apple Developer de pago.
 
 ### Compilar
