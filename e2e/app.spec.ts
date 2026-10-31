@@ -4,7 +4,7 @@ test('adds, completes and deletes a task', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByText('No tienes tareas')).toBeVisible();
 
-  const input = page.getByLabel('Nueva tarea').locator('input');
+  const input = page.getByRole('textbox', { name: 'Nueva tarea' });
   await input.fill('Comprar café');
   await input.press('Enter');
 

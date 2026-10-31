@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Un push nuevo a la misma rama cancela la ejecución anterior.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Lint, tests y build web
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint (ESLint, tipos de e2e y Prettier)
+        run: npm run lint
+
+      - name: Tests unitarios
+        run: npm run test:unit
+
+      - name: Build de producción
+        run: npx ng build
+
+      - name: Navegador para e2e
+        run: npx playwright install --with-deps --only-shell chromium
+
+      - name: Tests e2e
+        run: npm run test:e2e
+
+      - name: Reporte de Playwright
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  android:
+    name: APK de Android
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # cordova-android 15 usa Gradle 8.14, que no soporta JDK 21 o superior.
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Cordova necesita un Gradle del sistema para generar el wrapper del proyecto.
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.14.2'
+
+      - run: npm ci
+
+      # `ionic cordova build` regenera www con el cordova.js de Android y agrega la plataforma.
+      - name: Build
+        run: npm run android:build -- --prod --confirm --no-interactive
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: android-debug-apk
+          path: platforms/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  ios:
+    name: App de iOS (simulador)
+    needs: quality
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      # Build para el simulador: no requiere firma. El IPA para dispositivos se genera en el release.
+      - name: Build
+        run: npm run ios:build -- --confirm --no-interactive -- --emulator
+
+      - name: Comprimir Tareas.app
+        run: ditto -c -k --keepParent platforms/ios/build/Debug-iphonesimulator/Tareas.app Tareas-simulator.zip
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ios-simulator-app
+          path: Tareas-simulator.zip
+          if-no-files-found: error
+          retention-days: 14

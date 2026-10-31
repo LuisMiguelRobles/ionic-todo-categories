@@ -1,8 +1,10 @@
 # Tareas · Ionic To-Do con categorías
 
+[![CI](https://github.com/LuisMiguelRobles/ionic-todo-categories/actions/workflows/ci.yml/badge.svg)](https://github.com/LuisMiguelRobles/ionic-todo-categories/actions/workflows/ci.yml)
+
 Aplicación híbrida de lista de tareas construida con **Ionic 9 + Angular 22** y empaquetada con **Cordova** para Android e iOS.
 
-> Estado: **fase 5 — rendimiento**. CI/CD y los binarios llegan en las siguientes fases (ver [Roadmap](#roadmap)).
+> Estado: **fase 6 — integración continua**. Los binarios publicados (APK firmado e IPA) llegan en la siguiente fase (ver [Roadmap](#roadmap)).
 
 ## Funcionalidades
 
@@ -55,14 +57,14 @@ Abre <http://localhost:4200>. Para verlo como teléfono, usa el modo dispositivo
 
 ## Scripts
 
-| Comando                               | Qué hace                                                                    |
-| ------------------------------------- | --------------------------------------------------------------------------- |
-| `npm start`                           | Servidor de desarrollo                                                      |
-| `npm run build`                       | Build de producción en `www/`                                               |
-| `npm run test:unit`                   | Pruebas unitarias (Vitest)                                                  |
-| `npm run test:e2e`                    | Pruebas end-to-end (Playwright; requiere `npx playwright install chromium`) |
-| `npm run lint`                        | ESLint + typecheck de e2e + Prettier                                        |
-| `npm run android:*` / `npm run ios:*` | Compilar y ejecutar en nativo (ver [Android e iOS](#android-e-ios))         |
+| Comando                               | Qué hace                                                                                 |
+| ------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `npm start`                           | Servidor de desarrollo                                                                   |
+| `npm run build`                       | Build de producción en `www/`                                                            |
+| `npm run test:unit`                   | Pruebas unitarias (Vitest)                                                               |
+| `npm run test:e2e`                    | Pruebas end-to-end (Playwright; requiere `npx playwright install --only-shell chromium`) |
+| `npm run lint`                        | ESLint + typecheck de e2e + Prettier                                                     |
+| `npm run android:*` / `npm run ios:*` | Compilar y ejecutar en nativo (ver [Android e iOS](#android-e-ios))                      |
 
 ## Android e iOS
 
@@ -142,6 +144,27 @@ Con un Apple ID gratuito, Xcode puede instalar la app en tu propio iPhone; la fi
 | `xcodebuild requires Xcode, but active developer directory ... is a command line tools instance` | `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`                                                                                                                                         |
 | Pantalla en blanco en iOS                                                                        | Comprueba que `config.xml` mantenga `scheme=app` y `hostname=localhost`                                                                                                                                   |
 | El splash no desaparece y los plugins no responden                                               | Se empaquetó el `cordova.js` de otra plataforma. Compila siempre con los scripts (`npm run ios:build`, `npm run android:build`), que regeneran `www` por plataforma; no uses `cordova build` directamente |
+
+## Integración continua
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) se ejecuta en cada push a `main`, en cada pull request y a mano (_workflow_dispatch_):
+
+| Job                     | Runner          | Qué hace                                                                            | Artefacto                                     |
+| ----------------------- | --------------- | ----------------------------------------------------------------------------------- | --------------------------------------------- |
+| Lint, tests y build web | `ubuntu-latest` | `npm run lint`, pruebas unitarias, build de producción y pruebas e2e con Playwright | Reporte de Playwright (solo si fallan)        |
+| APK de Android          | `ubuntu-latest` | `npm run android:build -- --prod` con JDK 17 y Gradle                               | `android-debug-apk` (APK de debug)            |
+| App de iOS (simulador)  | `macos-latest`  | `npm run ios:build -- -- --emulator` (no requiere firma)                            | `ios-simulator-app` (`Tareas.app` comprimida) |
+
+- Los jobs de Android e iOS dependen del primero: si fallan el lint o las pruebas, no se compila nada.
+- Cada plataforma ejecuta su propio `ionic cordova build`, que regenera `www` con el `cordova.js` correcto y agrega la plataforma y los plugins (incluido el de [`cordova-plugins/`](cordova-plugins/README.md)) en un checkout limpio. Por eso no hace falta versionar `platforms/` ni `plugins/`.
+- Un push nuevo a la misma rama cancela la ejecución anterior (`concurrency`), y el workflow solo tiene permiso de lectura sobre el repositorio.
+- [Dependabot](.github/dependabot.yml) propone una vez al mes un PR con las actualizaciones menores de npm y de las acciones de GitHub. Las versiones mayores (Angular, Ionic, Cordova) se actualizan a mano porque requieren migración.
+
+Para probar en el simulador de iOS la app descargada de los artefactos:
+
+```bash
+unzip Tareas-simulator.zip && xcrun simctl install booted Tareas.app && xcrun simctl launch booted com.luisrobles.todocategories
+```
 
 ## Firebase Remote Config
 
@@ -299,6 +322,6 @@ cordova-plugins/              # Plugins de Cordova incluidos con correcciones
 - [x] **Fase 3:** compilación nativa Android/iOS documentada
 - [x] **Fase 4:** Firebase Remote Config con feature flag
 - [x] **Fase 5:** optimización de rendimiento con métricas antes y después
-- [ ] **Fase 6:** CI/CD con GitHub Actions
+- [x] **Fase 6:** CI/CD con GitHub Actions
 - [ ] **Fase 7:** APK e IPA en GitHub Releases
 - [ ] **Fase 8:** entregables (capturas, video y respuestas)
