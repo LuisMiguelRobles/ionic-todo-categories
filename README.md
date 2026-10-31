@@ -157,22 +157,86 @@ Cada versión se publica en [GitHub Releases](https://github.com/LuisMiguelRoble
 | [`Tareas-simulator.zip`](https://github.com/LuisMiguelRobles/ionic-todo-categories/releases/latest/download/Tareas-simulator.zip) | Simulador de iOS en macOS.                            |
 | [`SHA256SUMS.txt`](https://github.com/LuisMiguelRobles/ionic-todo-categories/releases/latest/download/SHA256SUMS.txt)             | Sumas de verificación.                                |
 
-**Android:** abre `Tareas.apk` en el teléfono y permite la instalación desde orígenes desconocidos cuando lo pida, o instálalo con `adb install Tareas.apk`.
-
-**iOS en el simulador:** descomprime el zip con el simulador abierto e instala la app:
-
-```bash
-unzip Tareas-simulator.zip && xcrun simctl install booted Tareas.app && xcrun simctl launch booted com.luisrobles.todocategories
-```
+Para instalarlos y qué revisar en cada plataforma, ver [Cómo probar la app](#cómo-probar-la-app).
 
 ### IPA sin firmar
 
-iOS solo instala apps firmadas, y firmar para distribuir requiere una cuenta de Apple Developer (de pago), que no se usó en esta prueba. Por eso se publica un IPA **compilado para dispositivos pero sin firma** (`CODE_SIGNING_ALLOWED=NO`), que contiene la app completa (`Payload/Tareas.app`). Para instalarlo en un iPhone hay que firmarlo primero con un certificado propio, por ejemplo:
+iOS solo instala apps firmadas, y el IPA firmado para distribuir (Ad Hoc, TestFlight o App Store) requiere una cuenta de Apple Developer de pago, que no se usó en esta prueba. Por eso se publica un IPA **compilado para dispositivos pero sin firma** (`CODE_SIGNING_ALLOWED=NO`), con la app completa (`Payload/Tareas.app`). Demuestra que la app compila para iPhone, y cualquiera con una cuenta de Apple puede firmarlo e instalarlo:
 
-- Con una cuenta de Apple gratuita y una herramienta de _sideloading_ que firme el IPA con ella (la firma dura 7 días).
-- Con una cuenta de Apple Developer: abrir `platforms/ios/App.xcworkspace` en Xcode, elegir el equipo en _Signing & Capabilities_ y ejecutar en el dispositivo.
+- Con una Apple ID gratuita y una herramienta de _sideloading_ (AltStore, Sideloadly…) que firme el IPA con ella. La firma dura 7 días.
+- Con una cuenta de Apple Developer, re-firmándolo con su certificado y un perfil que incluya el dispositivo.
 
-Para revisar la app sin firmarla está el build para el simulador, y la app en funcionamiento se muestra en el video de la sección de entregables.
+Para probar en un iPhone propio es más simple compilar desde Xcode con una Apple ID gratuita (ver [iPhone](#iphone)). Para revisar la app sin firmar nada está el [simulador](#simulador-de-ios).
+
+## Cómo probar la app
+
+### Android
+
+**En el teléfono** (Android 7.0 o superior):
+
+1. Abre en el teléfono el enlace de [`Tareas.apk`](https://github.com/LuisMiguelRobles/ionic-todo-categories/releases/latest/download/Tareas.apk) y descárgalo.
+2. Ábrelo. Android pedirá permitir **"Instalar apps desconocidas"** para el navegador o la app de Archivos: actívalo y vuelve.
+3. Toca **Instalar**. Si Play Protect advierte que es de un desarrollador desconocido (no viene de Play Store), elige **"Instalar de todas formas"**.
+
+**Por cable desde un computador:** en el teléfono ve a Ajustes → Acerca del teléfono, toca **Número de compilación** 7 veces y activa **Depuración USB** en las Opciones de desarrollador. Conéctalo, acepta el aviso y ejecuta `adb install Tareas.apk`.
+
+**En el emulador:** abre un dispositivo virtual desde Android Studio (Device Manager → ▶) o con `emulator -avd <nombre>` y arrastra `Tareas.apk` a su ventana (o usa `adb install Tareas.apk`).
+
+Si aparece _"App not installed"_ o un error de firma, hay instalada otra versión firmada con otra llave (por ejemplo, un APK de debug): desinstálala primero. Las versiones siguientes de la release usan la misma llave y se instalan encima conservando los datos.
+
+### Simulador de iOS
+
+Requiere una Mac con Xcode; no hace falta cuenta de Apple ni firma.
+
+1. Instala Xcode desde la App Store y ábrelo una vez para aceptar la licencia. Si no tienes un simulador de iOS 17 o superior, descárgalo en Xcode → Settings → Components.
+2. Abre un simulador (Xcode → Open Developer Tool → Simulator) o arráncalo desde la terminal:
+
+```bash
+xcrun simctl list devices available        # elige un iPhone
+xcrun simctl boot "iPhone 17"
+```
+
+3. Descarga [`Tareas-simulator.zip`](https://github.com/LuisMiguelRobles/ionic-todo-categories/releases/latest/download/Tareas-simulator.zip), descomprímelo y **arrastra `Tareas.app` a la ventana del simulador**. O desde la terminal:
+
+```bash
+unzip -o Tareas-simulator.zip
+xcrun simctl install booted Tareas.app
+xcrun simctl launch booted com.luisrobles.todocategories
+```
+
+Para usar el teclado en pantalla del simulador: I/O → Keyboard → Toggle Software Keyboard (⌘K).
+
+### iPhone
+
+Con una **Apple ID gratuita** se puede compilar e instalar la app desde Xcode en un iPhone propio (iOS 17 o superior):
+
+1. Prepara el proyecto: `npx ionic cordova prepare ios --prod` (requiere los [requisitos de iOS](#preparar-el-entorno)).
+2. En Xcode → Settings → Accounts, agrega tu Apple ID. Se crea un equipo _"(Tu nombre) (Personal Team)"_.
+3. Conecta el iPhone, acepta _"Confiar en este computador"_ y activa Ajustes → Privacidad y seguridad → **Modo de desarrollador** (el iPhone se reinicia).
+4. Abre `platforms/ios/App.xcworkspace` (el _workspace_, no el `.xcodeproj`).
+5. En el proyecto **App** → target **App** → **Signing & Capabilities**, marca _Automatically manage signing_ y elige tu Personal Team. Si el identificador no está disponible, cámbialo por uno propio (p. ej. `com.luisrobles.todocategories.dev`).
+6. Elige el iPhone como destino y pulsa **Run** (▶).
+7. La primera vez, en el iPhone ve a Ajustes → General → **VPN y gestión de dispositivos**, toca tu Apple ID y pulsa **Confiar**.
+
+Con una cuenta gratuita la firma dura **7 días** (después hay que volver a pulsar Run) y se pueden tener hasta 3 apps instaladas así. La configuración de firma se guarda en `platforms/ios`, que se regenera y no está versionado: si se regenera, repite el paso 5.
+
+### Qué revisar
+
+- **Tareas:** agregar (Enter o el botón +), marcar como completada, eliminar con el botón o deslizando a la izquierda, y **Deshacer** en el aviso.
+- **Categorías:** crear, editar y eliminar desde el ícono de etiquetas; asignar una a una tarea tocando su chip; filtrar con los chips del encabezado. Al filtrar por una categoría, las tareas nuevas se crean en ella.
+- **Persistencia:** cerrar la app por completo y volver a abrirla.
+- **Teclado:** el campo de nueva tarea queda justo encima del teclado y la lista sigue visible.
+- **Feature flag:** con `enable_task_stats` en `true` en Firebase, deslizar la lista hacia abajo o volver a la app muestra la tarjeta **"Tu progreso"** (ver [Firebase Remote Config](#firebase-remote-config)).
+- **Android:** el botón "atrás" desde la pantalla de categorías.
+
+### Inspeccionar la app y probar con 10.000 tareas
+
+Las builds de debug permiten conectar las herramientas de desarrollo del navegador al WebView:
+
+- **Android:** usa el APK de debug que deja cada ejecución del CI (artefacto `android-debug-apk` en la pestaña [Actions](https://github.com/LuisMiguelRobles/ionic-todo-categories/actions)); el APK de release no es depurable. Con el teléfono o emulador conectado, abre `chrome://inspect` en Chrome y elige la app.
+- **Simulador de iOS:** en Safari activa Ajustes → Avanzado → _"Mostrar funciones para desarrolladores web"_ y abre **Desarrollo → (simulador) → localhost**.
+
+En esa consola, pega [`scripts/perf/seed-tasks.js`](scripts/perf/seed-tasks.js) y recarga la app para tener 10.000 tareas (ver [Rendimiento](#rendimiento)).
 
 ## Releases
 
