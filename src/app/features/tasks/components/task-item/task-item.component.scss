@@ -1,11 +1,25 @@
+// Debe coincidir con TASK_ITEM_HEIGHT.
+:host {
+  display: block;
+  height: 56px;
+  overflow: hidden;
+}
+
+ion-item {
+  --min-height: 56px;
+}
+
 ion-checkbox {
   flex: 1;
   min-width: 0;
 }
 
+// Una sola línea para que todas las filas midan lo mismo.
 .title {
-  white-space: normal;
-  overflow-wrap: anywhere;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   transition: color 0.15s ease;
 }
 

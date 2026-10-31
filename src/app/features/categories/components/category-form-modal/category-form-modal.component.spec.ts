@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { ModalController } from '@ionic/angular';
+import { ModalController } from '@ionic/angular/modal-controller';
 
 import { FakeStorageService } from '../../../../../testing/fake-storage.service';
 import type { Category } from '../../../../core/models/category.model';

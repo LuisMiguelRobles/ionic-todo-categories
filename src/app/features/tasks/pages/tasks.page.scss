@@ -1,3 +1,13 @@
+.scroll-host {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  // Con fullscreen, ion-content expone el alto de header y footer para no quedar debajo.
+  padding-top: var(--offset-top, 0px);
+  padding-bottom: var(--offset-bottom, 0px);
+}
+
 .filters-toolbar {
   --min-height: 48px;
 }

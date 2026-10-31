@@ -5,9 +5,10 @@ import { provideRouter } from '@angular/router';
 
 import { FakeStorageService } from '../../../../testing/fake-storage.service';
 import { FeatureFlagsService } from '../../../core/feature-flags/feature-flags.service';
+import type { Task } from '../../../core/models/task.model';
 import { StorageService } from '../../../core/storage/storage.service';
 import { CATEGORIES_STORAGE_KEY, CategoriesStore } from '../../categories/data/categories.store';
-import { TasksStore } from '../data/tasks.store';
+import { TASKS_STORAGE_KEY, TasksStore } from '../data/tasks.store';
 
 import { TasksPage } from './tasks.page';
 
@@ -53,6 +54,24 @@ describe('TasksPage', () => {
 
     expect(element.querySelectorAll('app-task-item')).toHaveLength(2);
     expect(element.querySelector('[data-testid="summary"]')?.textContent).toContain('2 pendientes');
+  });
+
+  it('renders only the rows around the visible area for large lists', async () => {
+    const storage = new FakeStorageService();
+    const tasks: Task[] = Array.from({ length: 5000 }, (_, i) => ({
+      id: `t${i}`,
+      title: `Tarea ${i}`,
+      completed: false,
+      categoryId: null,
+      createdAt: i,
+    }));
+    storage.data.set(TASKS_STORAGE_KEY, tasks);
+    await setup(storage);
+
+    const rendered = element.querySelectorAll('app-task-item').length;
+    expect(rendered).toBeGreaterThan(0);
+    expect(rendered).toBeLessThan(100);
+    expect(element.querySelector('[data-testid="summary"]')?.textContent).toContain('5000 pendientes');
   });
 
   it('shows filter chips with counts and filters the list on click', async () => {

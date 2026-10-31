@@ -1,18 +1,19 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import {
-  IonButton,
-  IonCheckbox,
-  IonIcon,
-  IonItem,
-  IonItemOption,
-  IonItemOptions,
-  IonItemSliding,
-} from '@ionic/angular';
+import { IonButton } from '@ionic/angular/ion-button';
+import { IonCheckbox } from '@ionic/angular/ion-checkbox';
+import { IonIcon } from '@ionic/angular/ion-icon';
+import { IonItem } from '@ionic/angular/ion-item';
+import { IonItemOption } from '@ionic/angular/ion-item-option';
+import { IonItemOptions } from '@ionic/angular/ion-item-options';
+import { IonItemSliding } from '@ionic/angular/ion-item-sliding';
 import { addIcons } from 'ionicons';
 import { pricetagOutline, trashOutline } from 'ionicons/icons';
 
 import type { Category } from '../../../../core/models/category.model';
 import type { Task } from '../../../../core/models/task.model';
+
+/** Alto fijo de cada fila en px; la lista virtual lo necesita para calcular qué filas mostrar. */
+export const TASK_ITEM_HEIGHT = 56;
 
 @Component({
   selector: 'app-task-item',

@@ -1,33 +1,49 @@
-import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import {
-  IonButton,
-  IonButtons,
-  IonContent,
-  IonFooter,
-  IonHeader,
-  IonIcon,
-  IonInput,
-  IonItem,
-  IonList,
-  IonNote,
-  IonRefresher,
-  IonRefresherContent,
-  IonSkeletonText,
-  IonTitle,
-  IonToolbar,
-  ToastController,
-} from '@ionic/angular';
+  CdkFixedSizeVirtualScroll,
+  CdkVirtualForOf,
+  CdkVirtualScrollViewport,
+  CdkVirtualScrollableElement,
+} from '@angular/cdk/scrolling';
+import type { ElementRef } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  afterRenderEffect,
+  computed,
+  inject,
+  linkedSignal,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
+import { RouterLink } from '@angular/router';
 import type { RefresherCustomEvent } from '@ionic/angular';
+import { IonButton } from '@ionic/angular/ion-button';
+import { IonButtons } from '@ionic/angular/ion-buttons';
+import { IonContent } from '@ionic/angular/ion-content';
+import { IonFooter } from '@ionic/angular/ion-footer';
+import { IonHeader } from '@ionic/angular/ion-header';
+import { IonIcon } from '@ionic/angular/ion-icon';
+import { IonInput } from '@ionic/angular/ion-input';
+import { IonItem } from '@ionic/angular/ion-item';
+import { IonList } from '@ionic/angular/ion-list';
+import { IonNote } from '@ionic/angular/ion-note';
+import { IonRefresher } from '@ionic/angular/ion-refresher';
+import { IonRefresherContent } from '@ionic/angular/ion-refresher-content';
+import { IonSkeletonText } from '@ionic/angular/ion-skeleton-text';
+import { IonTitle } from '@ionic/angular/ion-title';
+import { IonToolbar } from '@ionic/angular/ion-toolbar';
+import { ToastController } from '@ionic/angular/toast-controller';
 import { addIcons } from 'ionicons';
 import { add, checkmarkDoneCircleOutline, filterOutline, pricetagOutline, pricetagsOutline } from 'ionicons/icons';
 
 import { FeatureFlagsService } from '../../../core/feature-flags/feature-flags.service';
 import type { Category } from '../../../core/models/category.model';
 import type { Task } from '../../../core/models/task.model';
+import { TASKS_RENDERED_MARK, markPerformance } from '../../../core/performance/performance-marks';
 import { CategoryPickerService } from '../../categories/category-picker.service';
 import { CategoriesStore } from '../../categories/data/categories.store';
-import { TaskItemComponent } from '../components/task-item/task-item.component';
+import { TASK_ITEM_HEIGHT, TaskItemComponent } from '../components/task-item/task-item.component';
 import type { StatsRow } from '../components/task-stats/task-stats.component';
 import { TaskStatsComponent } from '../components/task-stats/task-stats.component';
 import type { CategoryFilter, RemovedTask } from '../data/tasks.store';
@@ -67,6 +83,10 @@ function filterKey(filter: CategoryFilter): string {
     IonFooter,
     IonInput,
     IonButton,
+    CdkVirtualScrollableElement,
+    CdkVirtualScrollViewport,
+    CdkFixedSizeVirtualScroll,
+    CdkVirtualForOf,
     TaskItemComponent,
     TaskStatsComponent,
   ],
@@ -80,6 +100,8 @@ export class TasksPage {
 
   protected readonly newTitle = signal('');
   protected readonly skeletonRows = [1, 2, 3, 4, 5];
+  protected readonly taskItemHeight = TASK_ITEM_HEIGHT;
+  private readonly scrollHost = viewChild.required<ElementRef<HTMLElement>>('scrollHost');
 
   protected readonly hasCategories = computed(() => this.categoriesStore.categories().length > 0);
   protected readonly activeFilterKey = computed(() => filterKey(this.store.filter()));
@@ -142,6 +164,14 @@ export class TasksPage {
     addIcons({ add, checkmarkDoneCircleOutline, filterOutline, pricetagOutline, pricetagsOutline });
     void this.store.load();
     void this.categoriesStore.load();
+
+    let rendered = false;
+    afterRenderEffect(() => {
+      if (!rendered && this.store.loaded()) {
+        rendered = true;
+        markPerformance(TASKS_RENDERED_MARK, { tasks: untracked(this.store.tasks).length });
+      }
+    });
   }
 
   /** Deslizar para actualizar: fuerza la descarga de Remote Config. */
@@ -151,7 +181,21 @@ export class TasksPage {
   }
 
   protected showAll(): void {
-    this.store.setFilter(ALL_TASKS);
+    this.selectFilter(ALL_TASKS);
+  }
+
+  /** Cambia el filtro y vuelve al inicio de la lista, que ahora tiene otro contenido. */
+  protected selectFilter(filter: CategoryFilter): void {
+    this.store.setFilter(filter);
+    this.scrollHost().nativeElement.scrollTop = 0;
+  }
+
+  /**
+   * La lista virtual reutiliza las filas por id. Además no guarda vistas en caché
+   * (`templateCacheSize: 0`): una fila reciclada conservaría el estado deslizado de otra tarea.
+   */
+  protected trackById(_index: number, task: Task): string {
+    return task.id;
   }
 
   protected categoryOf(task: Task): Category | null {
