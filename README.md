@@ -4,7 +4,38 @@
 
 Aplicación híbrida de lista de tareas construida con **Ionic 9 + Angular 22** y empaquetada con **Cordova** para Android e iOS.
 
-> Estado: **fase 7 — releases**. Descarga la última versión en [Releases](https://github.com/LuisMiguelRobles/ionic-todo-categories/releases/latest) (ver [Descargas](#descargas)).
+## Entrega
+
+|                                |                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Descargas**                  | [APK](https://github.com/LuisMiguelRobles/ionic-todo-categories/releases/latest/download/Tareas.apk) · [IPA sin firmar](https://github.com/LuisMiguelRobles/ionic-todo-categories/releases/latest/download/Tareas-unsigned.ipa) · [app para el simulador de iOS](https://github.com/LuisMiguelRobles/ionic-todo-categories/releases/latest/download/Tareas-simulator.zip) ([todas las versiones](https://github.com/LuisMiguelRobles/ionic-todo-categories/releases)) |
+| **Capturas y video**           | [Capturas y video](#capturas-y-video)                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Respuestas a las preguntas** | [Desafíos, optimización y calidad](#respuestas-a-las-preguntas)                                                                                                                                                                                                                                                                                                                                                                                                       |
+| **Cambios realizados**         | [Resumen por fase](#cambios-realizados)                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| **Cómo ejecutar y probar**     | [Navegador](#ejecutar-en-el-navegador) · [Android e iOS](#android-e-ios) · [Cómo probar la app](#cómo-probar-la-app)                                                                                                                                                                                                                                                                                                                                                  |
+
+## Capturas y video
+
+Capturas del build de la release en el simulador de iOS (iPhone 17 Pro):
+
+|                                                           Lista con categorías                                                           |                                                         Filtro por categoría                                                         |                                                       Asignar categoría                                                        |
+| :--------------------------------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------------------: |
+|             <img src="docs/screenshots/ios-01-lista.png" width="220" alt="Lista de tareas con chips de categoría y filtros">             | <img src="docs/screenshots/ios-02-filtro.png" width="220" alt="Lista filtrada por Trabajo; la nueva tarea se crea en esa categoría"> | <img src="docs/screenshots/ios-03-asignar-categoria.png" width="220" alt="Action sheet para elegir la categoría de una tarea"> |
+|                                                              **Categorías**                                                              |                                                         **Nueva categoría**                                                          |                                                      **Editar categoría**                                                      |
+|           <img src="docs/screenshots/ios-04-categorias.png" width="220" alt="Pantalla de categorías con el número de tareas">            |    <img src="docs/screenshots/ios-05-nueva-categoria.png" width="220" alt="Formulario de nueva categoría con paleta de colores">     |    <img src="docs/screenshots/ios-06-editar-categoria.png" width="220" alt="Formulario de edición con opción de eliminar">     |
+|                                                          **Eliminar categoría**                                                          |                                                     **Eliminar con "Deshacer"**                                                      |                                                        **Modo oscuro**                                                         |
+| <img src="docs/screenshots/ios-07-eliminar-categoria.png" width="220" alt="Confirmación que indica cuántas tareas quedan sin categoría"> |          <img src="docs/screenshots/ios-08-deshacer.png" width="220" alt="Aviso de tarea eliminada con la opción Deshacer">          |                   <img src="docs/screenshots/ios-09-modo-oscuro.png" width="220" alt="Lista en modo oscuro">                   |
+
+**Feature flag `enable_task_stats`** (Firebase Remote Config):
+
+|                                       Flag desactivado                                        |                                                   Flag activado                                                    |
+| :-------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------: |
+| <img src="docs/screenshots/ios-01-lista.png" width="220" alt="Lista sin tarjeta de progreso"> | <img src="docs/screenshots/ios-10-flag-activo.png" width="220" alt="Tarjeta Tu progreso con avance por categoría"> |
+
+**Videos:**
+
+- [Recorrido por las funcionalidades](docs/media/demo.mp4?raw=true) (iOS, 1 min): filtrar, completar, cambiar de categoría, eliminar y deshacer, categorías y agregar una tarea.
+- [Feature flag en acción](docs/media/feature-flag.mp4?raw=true) (iOS): con la tarjeta de progreso visible se publica `enable_task_stats = false` en Firebase, se desliza la lista hacia abajo y la tarjeta desaparece sin reinstalar la app (34 s).
 
 ## Funcionalidades
 
@@ -404,6 +435,57 @@ Optimizaciones de fases anteriores que también influyen en las métricas:
 
 La marca `tasks-rendered` ([`core/performance`](src/app/core/performance/performance-marks.ts)) se registra cuando la lista se pinta por primera vez con los datos guardados. En los builds de desarrollo también se escribe en consola, que en Android llega a `adb logcat`.
 
+## Cambios realizados
+
+Partiendo de la app base (agregar, completar y eliminar tareas con almacenamiento local), el trabajo se hizo por fases, cada una en `main` con sus pruebas:
+
+| Fase          | Qué se hizo                                                                                                                                 | Commits                                                                                                                                                                                                                                                           |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| App base      | To-Do con Ionic 9 + Angular 22: agregar, completar, eliminar (con "Deshacer") y persistencia en IndexedDB                                   | [`efb5305`](https://github.com/LuisMiguelRobles/ionic-todo-categories/commit/efb5305)                                                                                                                                                                             |
+| Categorías    | Crear, editar y eliminar categorías con color; asignarlas a tareas; filtrar con contadores; las tareas nuevas toman la categoría del filtro | [`a877f78`](https://github.com/LuisMiguelRobles/ionic-todo-categories/commit/a877f78)                                                                                                                                                                             |
+| Android e iOS | Cordova 13 para ambas plataformas, ícono adaptativo, splash nativo y README con instrucciones de compilación                                | [`6fbf701`](https://github.com/LuisMiguelRobles/ionic-todo-categories/commit/6fbf701) [`b463f34`](https://github.com/LuisMiguelRobles/ionic-todo-categories/commit/b463f34) [`4ff7981`](https://github.com/LuisMiguelRobles/ionic-todo-categories/commit/4ff7981) |
+| Firebase      | Remote Config con el flag `enable_task_stats` (tarjeta de progreso), SDK con carga diferida, actualización al volver a la app y al deslizar | [`606f1fb`](https://github.com/LuisMiguelRobles/ionic-todo-categories/commit/606f1fb) [`483f7b9`](https://github.com/LuisMiguelRobles/ionic-todo-categories/commit/483f7b9) [`f2d69dd`](https://github.com/LuisMiguelRobles/ionic-todo-categories/commit/f2d69dd) |
+| Rendimiento   | Lista virtual, imports por componente de Ionic, métricas antes y después, y corrección del teclado en iOS                                   | [`f6d1f1f`](https://github.com/LuisMiguelRobles/ionic-todo-categories/commit/f6d1f1f)                                                                                                                                                                             |
+| CI/CD         | GitHub Actions: lint, pruebas unitarias y e2e, builds de Android e iOS en cada push; Dependabot                                             | [`f2e16c1`](https://github.com/LuisMiguelRobles/ionic-todo-categories/commit/f2e16c1)                                                                                                                                                                             |
+| Releases      | APK firmado e IPA sin firmar publicados en GitHub Releases al subir un tag; versión 1.0.0                                                   | [`ab38945`](https://github.com/LuisMiguelRobles/ionic-todo-categories/commit/ab38945)                                                                                                                                                                             |
+| Documentación | Guía para instalar y probar en cada plataforma, capturas, video y respuestas                                                                | [`b2e7275`](https://github.com/LuisMiguelRobles/ionic-todo-categories/commit/b2e7275) y siguientes                                                                                                                                                                |
+
+## Respuestas a las preguntas
+
+### ¿Cuáles fueron los principales desafíos que enfrentaste al implementar las nuevas funcionalidades?
+
+- **Cordova con un Angular actual.** El builder de Ionic para Cordova no se integró solo con Angular 22 y tuve que configurar sus targets a mano. En iOS el WebView no carga los módulos ES de Angular desde `file://`, así que la app se sirve con el esquema `app://localhost`. Además, cada plataforma necesita su propio `cordova.js`: compilar iOS reutilizando el `www` de Android dejaba el puente nativo roto (el splash nunca se ocultaba). Lo resolví compilando siempre por plataforma con `ionic cordova build`, y así quedó en el README y en el CI.
+- **Un plugin incompatible con cordova-ios 8.** Al abrir el teclado en iOS la app quedaba en blanco. Para encontrar la causa inyecté en el build un script que reportaba la geometría del WebView: el plugin de teclado lo dejaba del alto del teclado porque buscaba la ventana en `AppDelegate.window`, que en cordova-ios 8 (con `UIScene`) siempre es `nil`. La corrección es una línea; incluí el plugin corregido en el repositorio ([`cordova-plugins/`](cordova-plugins/README.md)) para que el CI lo use siempre.
+- **Remote Config "en tiempo real" que tardaba minutos.** Los cambios publicados llegaban hasta 4 minutos después. Antes de cambiar código descarté hipótesis con pruebas controladas (una conexión de prueba con su propia instalación de Firebase para no interferir con la app) y comprobé que el aviso solo llegaba al renovarse la conexión. La solución fue descargar la configuración al volver la app a primer plano, con un mínimo de 15 s entre descargas para no generar ráfagas, además de deslizar para actualizar.
+- **Lista virtual dentro de Ionic.** `ion-content` tiene su propio scroll, así que usé un contenedor de scroll propio que el CDK y el `ion-refresher` reconocen, para que la tarjeta, el resumen y la lista se desplacen juntos. La lista virtual necesita filas de alto fijo (títulos en una línea) y no reutilizar vistas, porque una fila reciclada podía conservar el estado "deslizado" de otra tarea.
+- **Medir de forma confiable.** En el emulador de Android la misma build tardaba entre 1,4 y 16 s en arrancar, así que comparé las versiones intercalando ejecuciones y me apoyé en métricas que no dependen de esa variación (nodos del DOM, memoria) y en el navegador.
+- **Entregar un IPA sin cuenta de Apple Developer.** Sin certificado no se puede firmar para distribuir, así que publico un IPA compilado para dispositivos sin firma, más un build para el simulador, y documento cómo instalarlo con una Apple ID gratuita.
+
+### ¿Qué técnicas de optimización de rendimiento aplicaste y por qué?
+
+Primero medí: agregué una marca de la Performance API cuando la lista se pinta con los datos guardados y scripts para generar 10.000 tareas y medir carga, interacciones y memoria. Así optimicé lo que realmente pesaba. Los números completos están en [Rendimiento](#rendimiento).
+
+- **Carga inicial:**
+  - **Imports por componente de Ionic.** El archivo índice de `@ionic/angular` llevaba al bundle inicial componentes de las pantallas diferidas: el bundle inicial bajó 28 % (182,8 → 132,0 kB).
+  - **Carga diferida.** Las rutas cargan bajo demanda y Firebase se importa con `import()` después de la primera pantalla.
+  - **Splash sin espera fija.** Se oculta al pintar la app, en lugar de esperar los 3 s fijos de Cordova.
+- **Muchas tareas:**
+  - **Lista virtual.** Cada fila creaba ~49 nodos (componentes de Ionic incluidos), así que con 10.000 tareas había 490.000 nodos y 6 s de hilo principal bloqueado. Con la lista virtual solo existen las filas visibles: la lista se pinta en ~60 ms y desplazar va de 10 a 121 fps.
+  - **`OnPush` y signals.** Solo se recalcula lo que depende del dato que cambió, y los contadores por categoría se calculan en una sola pasada.
+  - **Escrituras agrupadas.** Varias acciones seguidas se guardan en IndexedDB en una sola escritura.
+- **Memoria:**
+  - **Lista virtual.** Hace que la memoria no crezca con el número de tareas: ~300 MB → ~10 MB con 10.000.
+  - **Sin fugas.** No hay suscripciones manuales en los componentes, los listeners globales se eliminan al destruir los servicios y la cola de escrituras se vacía en cada guardado.
+
+### ¿Cómo aseguraste la calidad y mantenibilidad del código?
+
+- **Arquitectura clara:** `core/` para infraestructura y `features/` por funcionalidad. Los stores con signals son la única forma de cambiar el estado, las dependencias van en un solo sentido (`CategoriesStore` → `TasksStore`) y los componentes de presentación son `OnPush` y solo reciben datos y emiten eventos.
+- **Tipos que evitan errores:** TypeScript estricto, el filtro como unión discriminada (sin cadenas mágicas) y Firebase detrás de un `InjectionToken`, para probar sin red y poder cambiar de proveedor.
+- **Pruebas:** 57 pruebas unitarias (stores, componentes, la página, los feature flags con un cliente falso y la lista virtual) y una prueba e2e con Playwright del flujo principal.
+- **Automatización:** ESLint con angular-eslint (orden de imports, tipos de retorno explícitos) y Prettier. El CI corre lint, pruebas y builds de Android e iOS en cada push, el release verifica la versión y la firma del APK, y Dependabot propone actualizaciones.
+- **Documentación y trazabilidad:** este README explica cómo ejecutar, compilar, probar y por qué se tomó cada decisión. En el código, los comentarios explican el porqué, no el qué, y cada fase quedó en commits pequeños con mensajes descriptivos.
+- **Verificación real:** cada fase se probó en el navegador, el emulador de Android y el simulador de iOS, y las mediciones de rendimiento se pueden repetir con los scripts de [`scripts/perf/`](scripts/perf).
+
 ## Estructura
 
 ```
@@ -452,4 +534,4 @@ cordova-plugins/              # Plugins de Cordova incluidos con correcciones
 - [x] **Fase 5:** optimización de rendimiento con métricas antes y después
 - [x] **Fase 6:** CI/CD con GitHub Actions
 - [x] **Fase 7:** APK e IPA en GitHub Releases
-- [ ] **Fase 8:** entregables (capturas, video y respuestas)
+- [x] **Fase 8:** entregables (capturas, video y respuestas)
