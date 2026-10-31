@@ -148,10 +148,11 @@ La app lee el flag booleano **`enable_task_stats`** (valor por defecto `false`).
 
 1. Abre la app (navegador, Android o iOS) con algunas tareas; no hay tarjeta de estadísticas.
 2. En la [consola de Firebase](https://console.firebase.google.com) → **Remote Config**, cambia `enable_task_stats` a `true` y pulsa **Publicar cambios**.
-3. En unos segundos aparece la tarjeta **"Tu progreso"** sin recargar la app (actualización en tiempo real).
+3. **Desliza hacia abajo** la lista: la app descarga la configuración y aparece la tarjeta **"Tu progreso"** al instante.
+   Si no haces nada, la tarjeta también aparece sola, sin recargar, gracias al listener en tiempo real; en las pruebas tardó hasta unos 4 minutos, lo que dura cada ciclo de la conexión de streaming del SDK web.
 4. Vuelve a `false` y publica: la tarjeta desaparece.
 
-Si la red bloquea la conexión en tiempo real, **desliza hacia abajo** la lista para forzar la descarga de la configuración.
+Al abrir la app siempre se descarga la configuración, así que reiniciarla también muestra el valor nuevo.
 
 ### Cómo funciona
 
