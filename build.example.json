@@ -1,0 +1,12 @@
+{
+  "android": {
+    "release": {
+      "keystore": "/ruta/a/tareas-release.jks",
+      "keystoreType": "pkcs12",
+      "storePassword": "",
+      "alias": "tareas",
+      "password": "",
+      "packageType": "apk"
+    }
+  }
+}

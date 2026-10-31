@@ -1,6 +1,6 @@
 {
   "name": "ionic-todo-categories",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "author": "Luis Robles",
   "scripts": {
     "ng": "ng",
@@ -18,9 +18,10 @@
     "test:e2e": "playwright test",
     "android:run": "ionic cordova run android",
     "android:build": "ionic cordova build android",
-    "android:release": "ionic cordova build android --prod --release -- -- --packageType=apk",
+    "android:release": "ionic cordova build android --prod --release --confirm --no-interactive -- --buildConfig=build.json",
     "ios:run": "ionic cordova run ios --prod",
     "ios:build": "ionic cordova build ios --prod",
+    "ios:ipa": "scripts/release/build-unsigned-ipa.sh",
     "cordova:requirements": "cordova requirements"
   },
   "private": true,

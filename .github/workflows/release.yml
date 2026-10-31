@@ -1,0 +1,163 @@
+name: Release
+
+# Publica una release al subir un tag con la versión, p. ej.: git tag v1.0.0 && git push origin v1.0.0
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: Verificar versión
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      # El tag debe coincidir con config.xml (versión de la app nativa) y package.json.
+      - id: check
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          CONFIG=$(sed -n 's/.*<widget[^>]* version="\([^"]*\)".*/\1/p' config.xml)
+          PACKAGE=$(node -p "require('./package.json').version")
+          if [ "$TAG" != "$CONFIG" ] || [ "$TAG" != "$PACKAGE" ]; then
+            echo "::error::El tag ($TAG) no coincide con config.xml ($CONFIG) o package.json ($PACKAGE)"
+            exit 1
+          fi
+          echo "version=$TAG" >> "$GITHUB_OUTPUT"
+
+  android:
+    name: APK firmado
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.14.2'
+
+      - run: npm ci
+
+      # La llave se guarda en secrets en base64 y solo existe en el runner durante el build.
+      - name: Configurar firma
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::Falta el secret ANDROID_KEYSTORE_BASE64 (ver README, sección Releases)"
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+          node -e '
+            const { env } = process;
+            const release = {
+              keystore: env.RUNNER_TEMP + "/release.jks",
+              keystoreType: "pkcs12",
+              storePassword: env.KEYSTORE_PASSWORD,
+              alias: env.KEY_ALIAS,
+              password: env.KEY_PASSWORD,
+              packageType: "apk",
+            };
+            require("fs").writeFileSync("build.json", JSON.stringify({ android: { release } }));
+          '
+
+      - name: Build
+        run: npx ionic cordova build android --prod --release --confirm --no-interactive -- --buildConfig=build.json
+
+      - name: Verificar firma
+        run: |
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          "$APKSIGNER" verify --print-certs platforms/android/app/build/outputs/apk/release/app-release.apk
+          cp platforms/android/app/build/outputs/apk/release/app-release.apk Tareas.apk
+
+      - name: Borrar llave
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks" build.json
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: android
+          path: Tareas.apk
+          if-no-files-found: error
+
+  ios:
+    name: IPA sin firmar y app de simulador
+    needs: version
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      # Simulador: no requiere firma. También deja preparada la plataforma con el www de iOS.
+      - name: Build para simulador
+        run: |
+          npm run ios:build -- --confirm --no-interactive -- --emulator
+          ditto -c -k --keepParent platforms/ios/build/Debug-iphonesimulator/Tareas.app Tareas-simulator.zip
+
+      # Dispositivo: sin cuenta de Apple Developer no se puede firmar, así que se genera el IPA
+      # sin firma (Payload/Tareas.app comprimido). Ver README para instalarlo.
+      - name: Build para dispositivos (sin firma)
+        run: npm run ios:ipa
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ios
+          path: |
+            Tareas-unsigned.ipa
+            Tareas-simulator.zip
+          if-no-files-found: error
+
+  publish:
+    name: Publicar release
+    needs: [version, android, ios]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Crear release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          cd dist
+          sha256sum Tareas.apk Tareas-unsigned.ipa Tareas-simulator.zip > SHA256SUMS.txt
+          cat > notes.md <<EOF
+          | Archivo | Para qué |
+          | --- | --- |
+          | \`Tareas.apk\` | Android 7.0 o superior. APK de release firmado; instalar permitiendo apps de orígenes desconocidos. |
+          | \`Tareas-unsigned.ipa\` | iPhone con iOS 17 o superior. **Sin firmar**: hay que firmarlo antes de instalarlo (ver README). |
+          | \`Tareas-simulator.zip\` | Simulador de iOS en macOS: \`xcrun simctl install booted Tareas.app\`. |
+          | \`SHA256SUMS.txt\` | Sumas de verificación de los archivos. |
+          EOF
+          gh release create "$GITHUB_REF_NAME" Tareas.apk Tareas-unsigned.ipa Tareas-simulator.zip SHA256SUMS.txt \
+            --repo "$GITHUB_REPOSITORY" --title "Tareas $VERSION" --notes-file notes.md --generate-notes

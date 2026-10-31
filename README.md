@@ -4,7 +4,7 @@
 
 Aplicación híbrida de lista de tareas construida con **Ionic 9 + Angular 22** y empaquetada con **Cordova** para Android e iOS.
 
-> Estado: **fase 6 — integración continua**. Los binarios publicados (APK firmado e IPA) llegan en la siguiente fase (ver [Roadmap](#roadmap)).
+> Estado: **fase 7 — releases**. Descarga la última versión en [Releases](https://github.com/LuisMiguelRobles/ionic-todo-categories/releases/latest) (ver [Descargas](#descargas)).
 
 ## Funcionalidades
 
@@ -120,11 +120,12 @@ Con un Apple ID gratuito, Xcode puede instalar la app en tu propio iPhone; la fi
 
 ### Compilar
 
-| Comando                           | Resultado                                                                     |
-| --------------------------------- | ----------------------------------------------------------------------------- |
-| `npm run android:build`           | APK de debug en `platforms/android/app/build/outputs/apk/debug/app-debug.apk` |
-| `npm run android:release`         | APK de release; la firma se configura en la fase 7                            |
-| `npm run ios:build -- --emulator` | `platforms/ios/build/Debug-iphonesimulator/Tareas.app`                        |
+| Comando                           | Resultado                                                                                         |
+| --------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `npm run android:build`           | APK de debug en `platforms/android/app/build/outputs/apk/debug/app-debug.apk`                     |
+| `npm run android:release`         | APK de release firmado; requiere `build.json` (ver [Firma de Android](#firma-de-android))         |
+| `npm run ios:ipa`                 | IPA sin firmar a partir de la plataforma iOS ya preparada (ver [IPA sin firmar](#ipa-sin-firmar)) |
+| `npm run ios:build -- --emulator` | `platforms/ios/build/Debug-iphonesimulator/Tareas.app`                                            |
 
 ### Detalles de la integración
 
@@ -144,6 +145,69 @@ Con un Apple ID gratuito, Xcode puede instalar la app en tu propio iPhone; la fi
 | `xcodebuild requires Xcode, but active developer directory ... is a command line tools instance` | `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`                                                                                                                                         |
 | Pantalla en blanco en iOS                                                                        | Comprueba que `config.xml` mantenga `scheme=app` y `hostname=localhost`                                                                                                                                   |
 | El splash no desaparece y los plugins no responden                                               | Se empaquetó el `cordova.js` de otra plataforma. Compila siempre con los scripts (`npm run ios:build`, `npm run android:build`), que regeneran `www` por plataforma; no uses `cordova build` directamente |
+
+## Descargas
+
+Cada versión se publica en [GitHub Releases](https://github.com/LuisMiguelRobles/ionic-todo-categories/releases). Enlaces a la última:
+
+| Archivo                                                                                                                           | Para                                                  |
+| --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| [`Tareas.apk`](https://github.com/LuisMiguelRobles/ionic-todo-categories/releases/latest/download/Tareas.apk)                     | Android 7.0 o superior. APK de release firmado.       |
+| [`Tareas-unsigned.ipa`](https://github.com/LuisMiguelRobles/ionic-todo-categories/releases/latest/download/Tareas-unsigned.ipa)   | iPhone con iOS 17 o superior. Sin firmar (ver abajo). |
+| [`Tareas-simulator.zip`](https://github.com/LuisMiguelRobles/ionic-todo-categories/releases/latest/download/Tareas-simulator.zip) | Simulador de iOS en macOS.                            |
+| [`SHA256SUMS.txt`](https://github.com/LuisMiguelRobles/ionic-todo-categories/releases/latest/download/SHA256SUMS.txt)             | Sumas de verificación.                                |
+
+**Android:** abre `Tareas.apk` en el teléfono y permite la instalación desde orígenes desconocidos cuando lo pida, o instálalo con `adb install Tareas.apk`.
+
+**iOS en el simulador:** descomprime el zip con el simulador abierto e instala la app:
+
+```bash
+unzip Tareas-simulator.zip && xcrun simctl install booted Tareas.app && xcrun simctl launch booted com.luisrobles.todocategories
+```
+
+### IPA sin firmar
+
+iOS solo instala apps firmadas, y firmar para distribuir requiere una cuenta de Apple Developer (de pago), que no se usó en esta prueba. Por eso se publica un IPA **compilado para dispositivos pero sin firma** (`CODE_SIGNING_ALLOWED=NO`), que contiene la app completa (`Payload/Tareas.app`). Para instalarlo en un iPhone hay que firmarlo primero con un certificado propio, por ejemplo:
+
+- Con una cuenta de Apple gratuita y una herramienta de _sideloading_ que firme el IPA con ella (la firma dura 7 días).
+- Con una cuenta de Apple Developer: abrir `platforms/ios/App.xcworkspace` en Xcode, elegir el equipo en _Signing & Capabilities_ y ejecutar en el dispositivo.
+
+Para revisar la app sin firmarla está el build para el simulador, y la app en funcionamiento se muestra en el video de la sección de entregables.
+
+## Releases
+
+[`.github/workflows/release.yml`](.github/workflows/release.yml) se ejecuta al subir un tag `v*`:
+
+1. **Verificar versión:** el tag debe coincidir con la versión de `config.xml` y `package.json`.
+2. **APK firmado** (Ubuntu): `ionic cordova build android --prod --release` con la llave de los secrets del repositorio, y verificación con `apksigner`.
+3. **IPA y simulador** (macOS): `npm run ios:build -- -- --emulator` y `npm run ios:ipa`.
+4. **Publicar:** crea la release con los archivos, las sumas SHA-256 y las notas generadas a partir de los commits.
+
+Para publicar una versión nueva:
+
+1. Cambia la versión en `package.json` y en `config.xml` (`<widget version="…">`) y haz commit.
+2. Crea y sube el tag:
+
+```bash
+git tag v1.0.0 && git push origin v1.0.0
+```
+
+### Firma de Android
+
+La llave de firma (`*.jks`) **no está en el repositorio** (`.gitignore` excluye `*.jks`, `*.keystore` y `build.json`). El workflow la recibe de estos _secrets_ del repositorio:
+
+| Secret                      | Contenido                                                    |
+| --------------------------- | ------------------------------------------------------------ |
+| `ANDROID_KEYSTORE_BASE64`   | El archivo `.jks` en base64 (`base64 -i tareas-release.jks`) |
+| `ANDROID_KEYSTORE_PASSWORD` | Contraseña del keystore                                      |
+| `ANDROID_KEY_ALIAS`         | Alias de la llave (`tareas`)                                 |
+| `ANDROID_KEY_PASSWORD`      | Contraseña de la llave                                       |
+
+El keystore solo existe en el runner durante el build y se borra al terminar.
+
+Para firmar en local, copia [`build.example.json`](build.example.json) como `build.json`, completa la ruta y las contraseñas y ejecuta `npm run android:release`.
+
+Si se pierde la llave no se pueden publicar actualizaciones de la app con el mismo identificador, así que conviene guardar el `.jks` y sus contraseñas en un gestor de contraseñas.
 
 ## Integración continua
 
@@ -323,5 +387,5 @@ cordova-plugins/              # Plugins de Cordova incluidos con correcciones
 - [x] **Fase 4:** Firebase Remote Config con feature flag
 - [x] **Fase 5:** optimización de rendimiento con métricas antes y después
 - [x] **Fase 6:** CI/CD con GitHub Actions
-- [ ] **Fase 7:** APK e IPA en GitHub Releases
+- [x] **Fase 7:** APK e IPA en GitHub Releases
 - [ ] **Fase 8:** entregables (capturas, video y respuestas)

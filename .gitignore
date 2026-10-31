@@ -77,3 +77,8 @@ Thumbs.db
 
 # Claude Code
 /.claude/
+
+# Firma de Android: nunca versionar llaves ni la configuración con contraseñas
+*.jks
+*.keystore
+build.json
