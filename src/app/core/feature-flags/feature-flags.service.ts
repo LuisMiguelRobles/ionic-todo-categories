@@ -1,9 +1,12 @@
-import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+import { DOCUMENT, DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 
 import type { FeatureFlags } from './feature-flags';
 import { FEATURE_FLAG_DEFAULTS, FEATURE_FLAG_KEYS } from './feature-flags';
 import type { RemoteConfigClient } from './remote-config.client';
 import { REMOTE_CONFIG_LOADER } from './remote-config.client';
+
+/** Tiempo mínimo entre descargas al volver a primer plano, para no generar ráfagas al cambiar de app. */
+export const RESUME_MIN_FETCH_INTERVAL_MS = 15_000;
 
 /**
  * Feature flags respaldados por Firebase Remote Config.
@@ -11,6 +14,11 @@ import { REMOTE_CONFIG_LOADER } from './remote-config.client';
  * Arranca con los valores por defecto, aplica los valores en caché del arranque anterior,
  * descarga los nuevos y se suscribe a los cambios en tiempo real. Cualquier fallo (sin red,
  * sin configuración de Firebase) deja la app funcionando con el último valor conocido.
+ *
+ * El listener en tiempo real del SDK web solo recibe los cambios al renovar su conexión
+ * (cada ~4 minutos), así que también se descarga la configuración al volver a primer plano
+ * (evento `resume` de Cordova / `visibilitychange`), como mucho una vez cada
+ * `RESUME_MIN_FETCH_INTERVAL_MS`.
  */
 @Injectable({ providedIn: 'root' })
 export class FeatureFlagsService {
@@ -19,6 +27,8 @@ export class FeatureFlagsService {
   private client: RemoteConfigClient | null = null;
   private initialization: Promise<void> | null = null;
   private stopListening: (() => void) | null = null;
+  private refreshing: Promise<void> | null = null;
+  private lastFetchAt = 0;
 
   private readonly _flags = signal<FeatureFlags>({ ...FEATURE_FLAG_DEFAULTS });
 
@@ -26,7 +36,21 @@ export class FeatureFlagsService {
   readonly taskStatsEnabled = computed(() => this._flags().enable_task_stats);
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => this.stopListening?.());
+    const document = inject(DOCUMENT);
+    const onResume = (): void => this.refreshOnResume();
+    const onVisibilityChange = (): void => {
+      if (document.visibilityState === 'visible') {
+        this.refreshOnResume();
+      }
+    };
+    document.addEventListener('resume', onResume);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    inject(DestroyRef).onDestroy(() => {
+      this.stopListening?.();
+      document.removeEventListener('resume', onResume);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    });
   }
 
   /** Conecta con Remote Config. Es idempotente y nunca rechaza. */
@@ -35,13 +59,29 @@ export class FeatureFlagsService {
     return this.initialization;
   }
 
-  /** Descarga inmediata ignorando el intervalo mínimo (p. ej. al deslizar para actualizar). */
-  async refresh(): Promise<void> {
+  /**
+   * Descarga inmediata ignorando el intervalo mínimo (p. ej. al deslizar para actualizar).
+   * Las llamadas simultáneas comparten la misma descarga.
+   */
+  refresh(): Promise<void> {
+    this.refreshing ??= this.fetchNow().finally(() => (this.refreshing = null));
+    return this.refreshing;
+  }
+
+  /** Al volver a primer plano; antes del primer `init()` no hay nada que actualizar. */
+  private refreshOnResume(): void {
+    if (this.initialization && Date.now() - this.lastFetchAt >= RESUME_MIN_FETCH_INTERVAL_MS) {
+      void this.refresh();
+    }
+  }
+
+  private async fetchNow(): Promise<void> {
     await this.init();
     if (!this.client) {
       return;
     }
     try {
+      this.lastFetchAt = Date.now();
       await this.client.fetchAndActivate(true);
       this.readFlags();
     } catch (error) {
@@ -61,6 +101,7 @@ export class FeatureFlagsService {
         () => this.readFlags(),
         (error) => console.warn('[RemoteConfig] Actualizaciones en tiempo real no disponibles', error),
       );
+      this.lastFetchAt = Date.now();
       await this.client.fetchAndActivate();
       this.readFlags();
     } catch (error) {

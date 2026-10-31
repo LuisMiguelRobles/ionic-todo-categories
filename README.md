@@ -148,18 +148,17 @@ La app lee el flag booleano **`enable_task_stats`** (valor por defecto `false`).
 
 1. Abre la app (navegador, Android o iOS) con algunas tareas; no hay tarjeta de estadísticas.
 2. En la [consola de Firebase](https://console.firebase.google.com) → **Remote Config**, cambia `enable_task_stats` a `true` y pulsa **Publicar cambios**.
-3. **Desliza hacia abajo** la lista: la app descarga la configuración y aparece la tarjeta **"Tu progreso"** al instante.
-   Si no haces nada, la tarjeta también aparece sola, sin recargar, gracias al listener en tiempo real; en las pruebas tardó hasta unos 4 minutos, lo que dura cada ciclo de la conexión de streaming del SDK web.
+3. **Vuelve a la app** (o, si nunca salió de pantalla, **desliza hacia abajo** la lista): descarga la configuración y aparece la tarjeta **"Tu progreso"** al instante.
 4. Vuelve a `false` y publica: la tarjeta desaparece.
 
-Al abrir la app siempre se descarga la configuración, así que reiniciarla también muestra el valor nuevo.
+La configuración se descarga al abrir la app, al volver a primer plano y al deslizar para actualizar. Además, el listener en tiempo real aplica los cambios sin intervención, aunque con retraso: en las pruebas, Firebase no notificó por la conexión abierta y el cambio llegó cuando el SDK renovó la conexión, a los ~4 minutos.
 
 ### Cómo funciona
 
 - **Carga diferida:** el SDK de Firebase se importa con `import()` después del primer render, en un _chunk_ aparte; no aumenta el bundle inicial ni retrasa el arranque.
 - **Arranque:** se aplican primero los valores en caché del último arranque (IndexedDB), luego se descargan los nuevos y se abre el listener `onConfigUpdate` para cambios en tiempo real.
 - **Sin conexión:** cualquier fallo deja la app funcionando con el último valor conocido o, si nunca se descargó, con el valor por defecto definido en el código (`FEATURE_FLAG_DEFAULTS`).
-- **Intervalo mínimo de descarga:** 0 en desarrollo y 1 hora en producción; deslizar para actualizar lo ignora.
+- **Intervalo mínimo de descarga:** 0 en desarrollo y 1 hora en producción; volver a primer plano y deslizar para actualizar lo ignoran. Para no generar ráfagas al cambiar de app seguido, al volver a primer plano se descarga como mucho una vez cada 15 s (deslizar para actualizar no tiene ese límite) y, si `resume` y `visibilitychange` llegan juntos, comparten una sola descarga.
 - **Pruebas:** el SDK está detrás del `InjectionToken` `REMOTE_CONFIG_LOADER`, así que los tests usan un cliente falso sin red.
 - **Un solo SDK para todo:** se usa el SDK web en el WebView, así que basta con registrar una **app web** en Firebase; no hacen falta `google-services.json` ni `GoogleService-Info.plist`.
 
