@@ -1,8 +1,10 @@
+import { signal } from '@angular/core';
 import type { ComponentFixture } from '@angular/core/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
 import { FakeStorageService } from '../../../../testing/fake-storage.service';
+import { FeatureFlagsService } from '../../../core/feature-flags/feature-flags.service';
 import { StorageService } from '../../../core/storage/storage.service';
 import { CATEGORIES_STORAGE_KEY, CategoriesStore } from '../../categories/data/categories.store';
 import { TasksStore } from '../data/tasks.store';
@@ -15,10 +17,16 @@ describe('TasksPage', () => {
   let categoriesStore: CategoriesStore;
   let element: HTMLElement;
 
+  const taskStatsEnabled = signal(false);
+
   async function setup(storage = new FakeStorageService()) {
     TestBed.configureTestingModule({
       imports: [TasksPage],
-      providers: [provideRouter([]), { provide: StorageService, useValue: storage }],
+      providers: [
+        provideRouter([]),
+        { provide: StorageService, useValue: storage },
+        { provide: FeatureFlagsService, useValue: { taskStatsEnabled, refresh: vi.fn() } },
+      ],
     });
     fixture = TestBed.createComponent(TasksPage);
     store = TestBed.inject(TasksStore);
@@ -91,5 +99,36 @@ describe('TasksPage', () => {
     expect(filterChips()).toHaveLength(0);
     expect(element.querySelector('.category-chip')).toBeNull();
     expect(element.querySelector('.new-task-category')).toBeNull();
+  });
+
+  describe('enable_task_stats flag', () => {
+    beforeEach(() => taskStatsEnabled.set(false));
+
+    it('hides the stats card while the flag is off', async () => {
+      await setup();
+      store.add('Uno');
+      await fixture.whenStable();
+
+      expect(element.querySelector('app-task-stats')).toBeNull();
+    });
+
+    it('shows overall and per-category progress when the flag turns on', async () => {
+      await setup();
+      const work = categoriesStore.categories()[1];
+      const task = store.add('Informe', work.id)!;
+      store.add('Leer');
+      store.toggle(task.id);
+      await fixture.whenStable();
+
+      taskStatsEnabled.set(true);
+      await fixture.whenStable();
+
+      const card = element.querySelector('app-task-stats');
+      expect(card?.textContent).toContain('50% completado');
+      const rows = [...card!.querySelectorAll('li')].map(
+        (li) => `${li.querySelector('.label')?.textContent} ${li.querySelector('.count')?.textContent}`,
+      );
+      expect(rows).toEqual(['Trabajo 1/1', 'Sin categoría 0/1']);
+    });
   });
 });

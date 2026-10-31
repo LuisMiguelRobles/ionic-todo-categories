@@ -11,19 +11,25 @@ import {
   IonItem,
   IonList,
   IonNote,
+  IonRefresher,
+  IonRefresherContent,
   IonSkeletonText,
   IonTitle,
   IonToolbar,
   ToastController,
 } from '@ionic/angular';
+import type { RefresherCustomEvent } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { add, checkmarkDoneCircleOutline, filterOutline, pricetagOutline, pricetagsOutline } from 'ionicons/icons';
 
+import { FeatureFlagsService } from '../../../core/feature-flags/feature-flags.service';
 import type { Category } from '../../../core/models/category.model';
 import type { Task } from '../../../core/models/task.model';
 import { CategoryPickerService } from '../../categories/category-picker.service';
 import { CategoriesStore } from '../../categories/data/categories.store';
 import { TaskItemComponent } from '../components/task-item/task-item.component';
+import type { StatsRow } from '../components/task-stats/task-stats.component';
+import { TaskStatsComponent } from '../components/task-stats/task-stats.component';
 import type { CategoryFilter, RemovedTask } from '../data/tasks.store';
 import { ALL_TASKS, TasksStore, UNCATEGORIZED } from '../data/tasks.store';
 
@@ -55,11 +61,14 @@ function filterKey(filter: CategoryFilter): string {
     IonItem,
     IonSkeletonText,
     IonNote,
+    IonRefresher,
+    IonRefresherContent,
     IonIcon,
     IonFooter,
     IonInput,
     IonButton,
     TaskItemComponent,
+    TaskStatsComponent,
   ],
 })
 export class TasksPage {
@@ -67,6 +76,7 @@ export class TasksPage {
   protected readonly categoriesStore = inject(CategoriesStore);
   private readonly categoryPicker = inject(CategoryPickerService);
   private readonly toastController = inject(ToastController);
+  protected readonly featureFlags = inject(FeatureFlagsService);
 
   protected readonly newTitle = signal('');
   protected readonly skeletonRows = [1, 2, 3, 4, 5];
@@ -100,6 +110,20 @@ export class TasksPage {
     ];
   });
 
+  /** Filas de la tarjeta de progreso: categorías con tareas y, al final, las que no tienen categoría. */
+  protected readonly statsRows = computed<StatsRow[]>(() => {
+    const progress = this.store.progressByCategory();
+    const rows: StatsRow[] = this.categoriesStore.categories().flatMap((category) => {
+      const entry = progress.get(category.id);
+      return entry ? [{ key: category.id, label: category.name, color: category.color, ...entry }] : [];
+    });
+    const uncategorized = progress.get(null);
+    if (uncategorized && rows.length > 0) {
+      rows.push({ key: 'uncategorized', label: 'Sin categoría', color: null, ...uncategorized });
+    }
+    return rows;
+  });
+
   /** Categoría para la próxima tarea: por defecto, la del filtro activo. */
   protected readonly newTaskCategoryId = linkedSignal(() => {
     const filter = this.store.filter();
@@ -118,6 +142,12 @@ export class TasksPage {
     addIcons({ add, checkmarkDoneCircleOutline, filterOutline, pricetagOutline, pricetagsOutline });
     void this.store.load();
     void this.categoriesStore.load();
+  }
+
+  /** Deslizar para actualizar: fuerza la descarga de Remote Config. */
+  protected async onRefresh(event: RefresherCustomEvent): Promise<void> {
+    await this.featureFlags.refresh();
+    await event.target.complete();
   }
 
   protected showAll(): void {

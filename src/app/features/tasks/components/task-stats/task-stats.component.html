@@ -1,0 +1,31 @@
+<ion-card>
+  <ion-card-header>
+    <ion-card-subtitle>Tu progreso</ion-card-subtitle>
+    <ion-card-title data-testid="stats-percent">{{ percent() }}% completado</ion-card-title>
+  </ion-card-header>
+
+  <ion-card-content>
+    <ion-progress-bar [value]="ratio()" aria-hidden="true"></ion-progress-bar>
+    <p class="total">{{ completed() }} de {{ total() }} tareas</p>
+
+    @if (rows().length > 0) {
+      <ul class="rows">
+        @for (row of rows(); track row.key) {
+          <li>
+            <div class="row-header">
+              <span class="dot" [style.background]="row.color ?? 'var(--ion-color-medium)'" aria-hidden="true"></span>
+              <span class="label">{{ row.label }}</span>
+              <span class="count">{{ row.completed }}/{{ row.total }}</span>
+            </div>
+            <div class="bar" aria-hidden="true">
+              <span
+                [style.width.%]="(row.completed / row.total) * 100"
+                [style.background]="row.color ?? 'var(--ion-color-medium)'"
+              ></span>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </ion-card-content>
+</ion-card>

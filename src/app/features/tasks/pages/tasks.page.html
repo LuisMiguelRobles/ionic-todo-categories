@@ -32,6 +32,10 @@
 </ion-header>
 
 <ion-content [fullscreen]="true">
+  <ion-refresher slot="fixed" (ionRefresh)="onRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
   @if (!store.loaded()) {
   <ion-list aria-busy="true">
     @for (row of skeletonRows; track row) {
@@ -53,7 +57,9 @@
     <p>No hay tareas con este filtro.</p>
     <ion-button fill="clear" (click)="showAll()">Ver todas</ion-button>
   </div>
-  } @else {
+  } @else { @if (featureFlags.taskStatsEnabled()) {
+  <app-task-stats [total]="store.tasks().length" [completed]="store.totalCompleted()" [rows]="statsRows()" />
+  }
   <ion-note class="summary" data-testid="summary">
     {{ store.pendingCount() }} pendientes · {{ store.completedCount() }} completadas
   </ion-note>

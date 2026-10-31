@@ -107,6 +107,15 @@ describe('TasksStore', () => {
       expect(counts.get(null)).toBe(1);
     });
 
+    it('tracks total and completed tasks per category', () => {
+      const report = store.tasks().find((task) => task.title === 'Informe')!;
+      store.toggle(report.id);
+
+      expect(store.progressByCategory().get('work')).toEqual({ total: 2, completed: 1 });
+      expect(store.progressByCategory().get(null)).toEqual({ total: 1, completed: 0 });
+      expect(store.totalCompleted()).toBe(1);
+    });
+
     it('filters by category and by uncategorized', () => {
       store.setFilter({ kind: 'category', id: 'work' });
       expect(store.visibleTasks().map((task) => task.title)).toEqual(['Reunión', 'Informe']);

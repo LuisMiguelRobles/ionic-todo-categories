@@ -23,6 +23,11 @@ export function matchesFilter(task: Task, filter: CategoryFilter): boolean {
   }
 }
 
+export interface CategoryProgress {
+  total: number;
+  completed: number;
+}
+
 export interface RemovedTask {
   task: Task;
   index: number;
@@ -53,14 +58,25 @@ export class TasksStore {
     return filter.kind === 'all' ? tasks : tasks.filter((task) => matchesFilter(task, filter));
   });
 
-  /** Cantidad de tareas por categoría en una sola pasada; la clave `null` agrupa las que no tienen categoría. */
-  readonly countByCategory = computed(() => {
-    const counts = new Map<string | null, number>();
+  /** Total y completadas por categoría en una sola pasada; la clave `null` agrupa las que no tienen categoría. */
+  readonly progressByCategory = computed(() => {
+    const progress = new Map<string | null, CategoryProgress>();
     for (const task of this._tasks()) {
-      counts.set(task.categoryId, (counts.get(task.categoryId) ?? 0) + 1);
+      const entry = progress.get(task.categoryId) ?? { total: 0, completed: 0 };
+      progress.set(task.categoryId, {
+        total: entry.total + 1,
+        completed: entry.completed + (task.completed ? 1 : 0),
+      });
     }
-    return counts;
+    return progress;
   });
+
+  /** Cantidad de tareas por categoría (para los chips de filtro). */
+  readonly countByCategory = computed(
+    () => new Map([...this.progressByCategory()].map(([categoryId, { total }]) => [categoryId, total])),
+  );
+
+  readonly totalCompleted = computed(() => this._tasks().filter((task) => task.completed).length);
 
   readonly pendingCount = computed(() => this.visibleTasks().filter((task) => !task.completed).length);
   readonly completedCount = computed(() => this.visibleTasks().length - this.pendingCount());

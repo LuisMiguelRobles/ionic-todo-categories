@@ -1,6 +1,7 @@
-import { Component, afterNextRender } from '@angular/core';
+import { Component, afterNextRender, inject } from '@angular/core';
 import { IonApp, IonRouterOutlet } from '@ionic/angular';
 
+import { FeatureFlagsService } from './core/feature-flags/feature-flags.service';
 import { hideSplashScreen } from './core/platform/splash-screen';
 
 @Component({
@@ -10,6 +11,11 @@ import { hideSplashScreen } from './core/platform/splash-screen';
 })
 export class AppComponent {
   constructor() {
-    afterNextRender(() => hideSplashScreen());
+    const featureFlags = inject(FeatureFlagsService);
+    // Firebase se carga después de la primera pantalla para no retrasar el arranque.
+    afterNextRender(() => {
+      hideSplashScreen();
+      void featureFlags.init();
+    });
   }
 }
