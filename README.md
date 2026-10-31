@@ -132,12 +132,13 @@ Con un Apple ID gratuito, Xcode puede instalar la app en tu propio iPhone; la fi
 
 ### Problemas comunes
 
-| Síntoma                                                                                          | Solución                                                                |
-| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| `Could not find an installed version of Gradle`                                                  | `brew install gradle`                                                   |
-| `Unsupported class file major version` / Gradle no arranca                                       | `JAVA_HOME` apunta a un JDK distinto de 17                              |
-| `xcodebuild requires Xcode, but active developer directory ... is a command line tools instance` | `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`       |
-| Pantalla en blanco en iOS                                                                        | Comprueba que `config.xml` mantenga `scheme=app` y `hostname=localhost` |
+| Síntoma                                                                                          | Solución                                                                                                                                                                                                  |
+| ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Could not find an installed version of Gradle`                                                  | `brew install gradle`                                                                                                                                                                                     |
+| `Unsupported class file major version` / Gradle no arranca                                       | `JAVA_HOME` apunta a un JDK distinto de 17                                                                                                                                                                |
+| `xcodebuild requires Xcode, but active developer directory ... is a command line tools instance` | `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`                                                                                                                                         |
+| Pantalla en blanco en iOS                                                                        | Comprueba que `config.xml` mantenga `scheme=app` y `hostname=localhost`                                                                                                                                   |
+| El splash no desaparece y los plugins no responden                                               | Se empaquetó el `cordova.js` de otra plataforma. Compila siempre con los scripts (`npm run ios:build`, `npm run android:build`), que regeneran `www` por plataforma; no uses `cordova build` directamente |
 
 ## Firebase Remote Config
 
