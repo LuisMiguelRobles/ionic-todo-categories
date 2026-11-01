@@ -32,6 +32,11 @@ jobs:
       - name: Lint (ESLint, tipos de e2e y Prettier)
         run: npm run lint
 
+      # Solo las dependencias que llegan a la app. Las de desarrollo (Ionic CLI, Cordova) se ejecutan en local
+      # y sus avisos no tienen arreglo sin bajar de versión mayor (ver README).
+      - name: Auditoría de dependencias de producción
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Tests unitarios
         run: npm run test:unit
 

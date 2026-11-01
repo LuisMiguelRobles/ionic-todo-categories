@@ -1,4 +1,4 @@
-import type { FirebaseOptions } from 'firebase/app';
+import type { FirebaseOptions } from '@firebase/app';
 
 /**
  * Configuración web de Firebase. No es secreta: identifica el proyecto y la protegen las

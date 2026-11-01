@@ -60,15 +60,15 @@ Capturas del build de la release en el simulador de iOS (iPhone 17 Pro):
 
 ## Stack
 
-| Capa          | Tecnología                                                                  |
-| ------------- | --------------------------------------------------------------------------- |
-| UI            | Ionic 9 (componentes standalone), Angular 22 con signals y `OnPush`         |
-| Estado        | Stores basados en `signal` / `computed` (sin librerías externas)            |
-| Listas        | `@angular/cdk/scrolling` (lista virtual)                                    |
-| Persistencia  | `@ionic/storage` (IndexedDB) con escrituras agrupadas (debounce)            |
-| Feature flags | Firebase Remote Config (SDK web modular, carga diferida)                    |
-| Híbrido       | Cordova 13 · cordova-android 15 · cordova-ios 8 · `@ionic/cordova-builders` |
-| Calidad       | ESLint (angular-eslint), Prettier, Vitest, Playwright                       |
+| Capa          | Tecnología                                                                           |
+| ------------- | ------------------------------------------------------------------------------------ |
+| UI            | Ionic 9 (componentes standalone), Angular 22 con signals y `OnPush`                  |
+| Estado        | Stores basados en `signal` / `computed` (sin librerías externas)                     |
+| Listas        | `@angular/cdk/scrolling` (lista virtual)                                             |
+| Persistencia  | `@ionic/storage` (IndexedDB) con escrituras agrupadas (debounce)                     |
+| Feature flags | Firebase Remote Config (`@firebase/app` + `@firebase/remote-config`, carga diferida) |
+| Híbrido       | Cordova 13 · cordova-android 15 · cordova-ios 8 · `@ionic/cordova-builders`          |
+| Calidad       | ESLint (angular-eslint), Prettier, Vitest, Playwright                                |
 
 ## Requisitos
 
@@ -320,6 +320,7 @@ Si se pierde la llave no se pueden publicar actualizaciones de la app con el mis
 - Cada plataforma ejecuta su propio `ionic cordova build`, que regenera `www` con el `cordova.js` correcto y agrega la plataforma y los plugins (incluido el de [`cordova-plugins/`](cordova-plugins/README.md)) en un checkout limpio. Por eso no hace falta versionar `platforms/` ni `plugins/`.
 - Un push nuevo a la misma rama cancela la ejecución anterior (`concurrency`), y el workflow solo tiene permiso de lectura sobre el repositorio.
 - [Dependabot](.github/dependabot.yml) propone una vez al mes un PR con las actualizaciones menores de npm y de las acciones de GitHub. Las versiones mayores (Angular, Ionic, Cordova) se actualizan a mano porque requieren migración.
+- **Auditoría de dependencias:** el CI falla si `npm audit --omit=dev` encuentra vulnerabilidades altas o críticas en lo que llega a la app (hoy: ninguna). `npm audit` sin filtro sí reporta avisos en herramientas de desarrollo (Ionic CLI, Cordova, ESLint): se ejecutan solo en local y en el CI, no forman parte de la app, y npm solo propone resolverlos bajando a versiones mayores antiguas.
 
 Para probar en el simulador de iOS la app descargada de los artefactos:
 
@@ -348,6 +349,7 @@ La configuración se descarga al abrir la app, al volver a primer plano y al des
 - **Intervalo mínimo de descarga:** 0 en desarrollo y 1 hora en producción; volver a primer plano y deslizar para actualizar lo ignoran. Para no generar ráfagas al cambiar de app seguido, al volver a primer plano se descarga como mucho una vez cada 15 s (deslizar para actualizar no tiene ese límite) y, si `resume` y `visibilitychange` llegan juntos, comparten una sola descarga.
 - **Pruebas:** el SDK está detrás del `InjectionToken` `REMOTE_CONFIG_LOADER`, así que los tests usan un cliente falso sin red.
 - **Un solo SDK para todo:** se usa el SDK web en el WebView, así que basta con registrar una **app web** en Firebase; no hacen falta `google-services.json` ni `GoogleService-Info.plist`.
+- **Solo los módulos necesarios:** se instalan `@firebase/app` y `@firebase/remote-config` en lugar del paquete `firebase` completo, que trae Firestore, Auth, Storage, etc. y sus dependencias (por ejemplo gRPC). Así la instalación es más liviana y `npm audit --omit=dev` queda sin vulnerabilidades.
 
 ### Usar tu propio proyecto de Firebase
 

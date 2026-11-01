@@ -32,7 +32,7 @@ export async function loadFirebaseRemoteConfig(): Promise<RemoteConfigClient | n
   if (!options) {
     return null;
   }
-  const [{ initializeApp }, rc] = await Promise.all([import('firebase/app'), import('firebase/remote-config')]);
+  const [{ initializeApp }, rc] = await Promise.all([import('@firebase/app'), import('@firebase/remote-config')]);
   if (!(await rc.isSupported())) {
     return null;
   }

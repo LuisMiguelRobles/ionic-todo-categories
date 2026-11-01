@@ -4,6 +4,6 @@ import { firebaseConfig } from './firebase.config';
 export const environment: Environment = {
   production: true,
   firebase: firebaseConfig,
-  // Los cambios publicados llegan igualmente al instante por el listener en tiempo real.
+  // Valor recomendado por Firebase. Volver a primer plano y deslizar para actualizar descargan sin este límite.
   remoteConfigMinFetchIntervalMs: 60 * 60 * 1000,
 };
